@@ -9,7 +9,12 @@ export const settingsRoute = new Hono()
     return c.json({ gitUrl: row?.gitUrl ?? null } as const)
   })
   .put("/", async (c) => {
-    const body = await c.req.json<{ gitUrl?: string; git_url?: string }>()
+    let body: { gitUrl?: string; git_url?: string }
+    try {
+      body = await c.req.json()
+    } catch {
+      return c.json({ error: "Invalid JSON body" } as const, 400)
+    }
     const gitUrl = body.gitUrl ?? body.git_url
 
     if (!gitUrl) {
