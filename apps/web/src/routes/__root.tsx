@@ -2,7 +2,6 @@ import { Outlet, createRootRoute } from "@tanstack/react-router"
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AppSidebar } from "@/components/layout/app-sidebar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Toaster } from "@/components/ui/sonner"
 
 export const Route = createRootRoute({
@@ -18,14 +17,11 @@ function RootComponent() {
       >
         Skip to main content
       </a>
-      <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-          <div id="main" className="flex-1 overflow-auto p-6" tabIndex={-1}>
-            <Outlet />
-          </div>
-        </SidebarInset>
-      </SidebarProvider>
+      <AppSidebar>
+        <div id="main" className="h-full overflow-auto p-6" tabIndex={-1}>
+          <Outlet />
+        </div>
+      </AppSidebar>
       <Toaster />
       <TanStackRouterDevtools position="bottom-right" />
     </ThemeProvider>

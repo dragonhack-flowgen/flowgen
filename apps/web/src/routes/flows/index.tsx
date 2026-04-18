@@ -8,12 +8,7 @@ export const Route = createFileRoute("/flows/")({
 function FlowsPage() {
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        title="Flows"
-        breadcrumbs={[
-          { label: "Flows" },
-        ]}
-      />
+      <PageHeader title="Flows" breadcrumbs={[{ label: "Flows" }]} />
       <p className="text-muted-foreground">Flows library — coming soon.</p>
     </div>
   )
