@@ -13,7 +13,7 @@ export const settingsRoute = new Hono()
     const gitUrl = body.gitUrl ?? body.git_url
 
     if (!gitUrl) {
-      return c.json({ error: "gitUrl is required" } as const, 400)
+      return c.json({ error: "Git URL is required" } as const, 400)
     }
 
     const [existing] = await db
