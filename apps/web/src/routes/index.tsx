@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 import { PageHeader } from "@/components/layout/page-header"
-import { Button } from "@/components/ui/button"
 import { PlusIcon } from "lucide-react"
+import { CreateFlowModal } from "@/components/flows/create-flow-modal"
 
 export const Route = createFileRoute("/")({
   component: DashboardPage,
@@ -25,10 +25,7 @@ function DashboardPage() {
             Create step-by-step documentation with automated walkthrough videos.
           </p>
         </div>
-        <Button render={<Link to="/flows/new" />}>
-          <PlusIcon />
-          Create New Flow
-        </Button>
+        <CreateFlowModal />
       </div>
     </div>
   )

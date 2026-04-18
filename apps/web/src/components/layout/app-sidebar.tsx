@@ -1,8 +1,8 @@
 import { Link, useRouter } from "@tanstack/react-router"
-import { HomeIcon, ListIcon, PlusIcon, MoonIcon, SunIcon } from "lucide-react"
+import { HomeIcon, ListIcon, MoonIcon, SunIcon } from "lucide-react"
 
 import { useTheme } from "@/components/theme-provider"
-import { Button } from "@/components/ui/button"
+import { CreateFlowModal } from "@/components/flows/create-flow-modal"
 import {
   Sidebar,
   SidebarContent,
@@ -38,14 +38,7 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <Button
-          className="w-full"
-          size="sm"
-          onClick={() => router.navigate({ to: "/flows/new" })}
-        >
-          <PlusIcon />
-          <span>Create New Flow</span>
-        </Button>
+        <CreateFlowModal />
       </SidebarHeader>
 
       <SidebarSeparator />

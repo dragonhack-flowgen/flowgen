@@ -1,7 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { PageHeader } from "@/components/layout/page-header"
 
+import * as z from "zod"
+
 export const Route = createFileRoute("/flows/")({
+  validateSearch: (search) => z.object({ flowId: z.string().optional() }).parse(search),
   component: FlowsPage,
 })
 
