@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
+    "predev": "docker compose up -d",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "turbo format",
