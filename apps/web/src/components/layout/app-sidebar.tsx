@@ -1,5 +1,5 @@
 import { Link, useRouter } from "@tanstack/react-router"
-import { HomeIcon, ListIcon, PlusIcon, MoonIcon, SunIcon } from "lucide-react"
+import { ListIcon, PlusIcon, MoonIcon, SunIcon } from "lucide-react"
 
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/sidebar"
 
 const navItems = [
-  { label: "Dashboard", icon: HomeIcon, to: "/" as const },
   { label: "Flows", icon: ListIcon, to: "/flows" as const },
 ]
 
@@ -30,7 +29,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" render={<Link to="/" />}>
+            <SidebarMenuButton size="lg" render={<Link to="/flows" />}>
               <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <span className="text-sm font-bold">FG</span>
               </div>

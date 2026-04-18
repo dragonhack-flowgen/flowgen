@@ -11,7 +11,6 @@ function FlowsPage() {
       <PageHeader
         title="Flows"
         breadcrumbs={[
-          { label: "Dashboard", to: "/" },
           { label: "Flows" },
         ]}
       />

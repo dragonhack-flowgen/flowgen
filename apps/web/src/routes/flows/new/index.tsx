@@ -11,7 +11,6 @@ function NewFlowPage() {
       <PageHeader
         title="Create New Flow"
         breadcrumbs={[
-          { label: "Dashboard", to: "/" },
           { label: "Flows", to: "/flows" },
           { label: "New Flow" },
         ]}
