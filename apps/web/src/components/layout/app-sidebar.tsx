@@ -2,6 +2,8 @@ import * as React from "react"
 import { Link, useRouter } from "@tanstack/react-router"
 import { ListIcon, PlusIcon, MoonIcon, SunIcon } from "lucide-react"
 
+import { AppHeader } from "@/components/layout/app-header"
+
 import { useTheme } from "@/components/theme-provider"
 import {
   Sidebar,
@@ -95,7 +97,10 @@ export function AppSidebar({
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset>{children}</SidebarInset>
+      <SidebarInset>
+        <AppHeader />
+        {children}
+      </SidebarInset>
     </SidebarProvider>
   )
 }
