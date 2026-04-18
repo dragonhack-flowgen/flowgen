@@ -45,11 +45,11 @@ export const flowsRoute = new Hono()
           .set({ status: "running", updatedAt: new Date() })
           .where(eq(flows.id, row.id))
 
-        const guide = await runExploration(gitUrl, flowDescription)
+        const { guide, userDocs } = await runExploration(gitUrl, flowDescription)
 
         await db
           .update(flows)
-          .set({ status: "completed", guide, updatedAt: new Date() })
+          .set({ status: "completed", guide, userDocs, updatedAt: new Date() })
           .where(eq(flows.id, row.id))
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error"
