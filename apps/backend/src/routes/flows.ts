@@ -59,6 +59,25 @@ export const flowsRoute = new Hono()
     const all = await db.select().from(flows).orderBy(desc(flows.createdAt))
     return c.json(all)
   })
+  .put("/:id", async (c) => {
+    const id = c.req.param("id")
+    const body = await c.req.json<{ guide?: string; userDocs?: string }>()
+
+    if (!body.guide && !body.userDocs) {
+      return c.json({ error: "guide or userDocs is required" } as const, 400)
+    }
+
+    const [existing] = await db.select().from(flows).where(eq(flows.id, id))
+    if (!existing) return c.json({ error: "Flow not found" } as const, 404)
+
+    const [row] = await db
+      .update(flows)
+      .set({ ...body, updatedAt: new Date() })
+      .where(eq(flows.id, id))
+      .returning()
+
+    return c.json(row)
+  })
   .get("/:id", async (c) => {
     const id = c.req.param("id")
     const [row] = await db.select().from(flows).where(eq(flows.id, id))

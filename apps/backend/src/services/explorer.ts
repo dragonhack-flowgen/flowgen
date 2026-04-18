@@ -67,7 +67,7 @@ Rules:
 export async function runExploration(
   gitUrl: string,
   flow: string
-): Promise<Guide> {
+): Promise<string> {
   console.log(`[explorer] Fetching ${gitUrl}...`)
   const repoPath = await cloneOrUpdateRepo(gitUrl)
   console.log(`[explorer] Repo ready at ${repoPath}`)
@@ -75,7 +75,7 @@ export async function runExploration(
   return await executeAgent(repoPath, flow)
 }
 
-async function executeAgent(repoPath: string, flow: string): Promise<Guide> {
+async function executeAgent(repoPath: string, flow: string): Promise<string> {
   const providerId = process.env.PROVIDER_ID || "anthropic"
   const modelId = process.env.MODEL_ID || "claude-sonnet-4-20250514"
   console.log(`[explorer] Provider: ${providerId}, Model: ${modelId}`)
@@ -216,5 +216,5 @@ async function executeAgent(repoPath: string, flow: string): Promise<Guide> {
   console.log(
     `[explorer] Guide received: "${guide.title}" (${guide.steps.length} steps)`
   )
-  return guide
+  return guide.steps.join("\n\n")
 }
