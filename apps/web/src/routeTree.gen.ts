@@ -9,55 +9,89 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
-import { Route as AboutRouteImport } from "./routes/about"
 import { Route as IndexRouteImport } from "./routes/index"
+import { Route as FlowsIndexRouteImport } from "./routes/flows/index"
+import { Route as FlowsNewIndexRouteImport } from "./routes/flows/new/index"
+import { Route as FlowsFlowIdIndexRouteImport } from "./routes/flows/$flowId/index"
+import { Route as FlowsFlowIdEditRouteImport } from "./routes/flows/$flowId/edit"
 
-const AboutRoute = AboutRouteImport.update({
-  id: "/about",
-  path: "/about",
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
   getParentRoute: () => rootRouteImport,
 } as any)
+const FlowsIndexRoute = FlowsIndexRouteImport.update({
+  id: "/flows/",
+  path: "/flows/",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlowsNewIndexRoute = FlowsNewIndexRouteImport.update({
+  id: "/flows/new/",
+  path: "/flows/new/",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlowsFlowIdIndexRoute = FlowsFlowIdIndexRouteImport.update({
+  id: "/flows/$flowId/",
+  path: "/flows/$flowId/",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FlowsFlowIdEditRoute = FlowsFlowIdEditRouteImport.update({
+  id: "/flows/$flowId/edit",
+  path: "/flows/$flowId/edit",
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
-  "/about": typeof AboutRoute
+  "/flows/": typeof FlowsIndexRoute
+  "/flows/$flowId/edit": typeof FlowsFlowIdEditRoute
+  "/flows/$flowId/": typeof FlowsFlowIdIndexRoute
+  "/flows/new/": typeof FlowsNewIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
-  "/about": typeof AboutRoute
+  "/flows": typeof FlowsIndexRoute
+  "/flows/$flowId/edit": typeof FlowsFlowIdEditRoute
+  "/flows/$flowId": typeof FlowsFlowIdIndexRoute
+  "/flows/new": typeof FlowsNewIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
-  "/about": typeof AboutRoute
+  "/flows/": typeof FlowsIndexRoute
+  "/flows/$flowId/edit": typeof FlowsFlowIdEditRoute
+  "/flows/$flowId/": typeof FlowsFlowIdIndexRoute
+  "/flows/new/": typeof FlowsNewIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/about"
+  fullPaths:
+    | "/"
+    | "/flows/"
+    | "/flows/$flowId/edit"
+    | "/flows/$flowId/"
+    | "/flows/new/"
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/about"
-  id: "__root__" | "/" | "/about"
+  to: "/" | "/flows" | "/flows/$flowId/edit" | "/flows/$flowId" | "/flows/new"
+  id:
+    | "__root__"
+    | "/"
+    | "/flows/"
+    | "/flows/$flowId/edit"
+    | "/flows/$flowId/"
+    | "/flows/new/"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
+  FlowsIndexRoute: typeof FlowsIndexRoute
+  FlowsFlowIdEditRoute: typeof FlowsFlowIdEditRoute
+  FlowsFlowIdIndexRoute: typeof FlowsFlowIdIndexRoute
+  FlowsNewIndexRoute: typeof FlowsNewIndexRoute
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/about": {
-      id: "/about"
-      path: "/about"
-      fullPath: "/about"
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     "/": {
       id: "/"
       path: "/"
@@ -65,12 +99,43 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    "/flows/": {
+      id: "/flows/"
+      path: "/flows"
+      fullPath: "/flows/"
+      preLoaderRoute: typeof FlowsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/flows/new/": {
+      id: "/flows/new/"
+      path: "/flows/new"
+      fullPath: "/flows/new/"
+      preLoaderRoute: typeof FlowsNewIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/flows/$flowId/": {
+      id: "/flows/$flowId/"
+      path: "/flows/$flowId"
+      fullPath: "/flows/$flowId/"
+      preLoaderRoute: typeof FlowsFlowIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/flows/$flowId/edit": {
+      id: "/flows/$flowId/edit"
+      path: "/flows/$flowId/edit"
+      fullPath: "/flows/$flowId/edit"
+      preLoaderRoute: typeof FlowsFlowIdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
+  FlowsIndexRoute: FlowsIndexRoute,
+  FlowsFlowIdEditRoute: FlowsFlowIdEditRoute,
+  FlowsFlowIdIndexRoute: FlowsFlowIdIndexRoute,
+  FlowsNewIndexRoute: FlowsNewIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
