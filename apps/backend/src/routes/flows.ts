@@ -5,9 +5,17 @@ import { flows } from "../db/schema.js"
 import { runExploration } from "../services/explorer.js"
 import { getSettings } from "./settings.js"
 
+async function parseJsonBody<T>(c: import("hono").Context): Promise<T> {
+  try {
+    return await c.req.json<T>()
+  } catch {
+    throw new Error("Invalid JSON body")
+  }
+}
+
 export const flowsRoute = new Hono()
   .post("/", async (c) => {
-    const body = await c.req.json<{ name?: string; description?: string }>()
+    const body = await parseJsonBody<{ name?: string; description?: string }>(c)
 
     if (!body.name || !body.description) {
       return c.json({ error: "name and description are required" } as const, 400)
@@ -30,7 +38,7 @@ export const flowsRoute = new Hono()
       })
       .returning()
 
-    const exploration = (async () => {
+    ;(async () => {
       try {
         await db
           .update(flows)
@@ -51,7 +59,6 @@ export const flowsRoute = new Hono()
           .where(eq(flows.id, row.id))
       }
     })()
-    exploration.catch(() => {})
 
     return c.json({ id: row.id, status: row.status } as const, 201)
   })
@@ -61,7 +68,7 @@ export const flowsRoute = new Hono()
   })
   .put("/:id", async (c) => {
     const id = c.req.param("id")
-    const body = await c.req.json<{ guide?: string; userDocs?: string }>()
+    const body = await parseJsonBody<{ guide?: string; userDocs?: string }>(c)
 
     if (!body.guide && !body.userDocs) {
       return c.json({ error: "guide or userDocs is required" } as const, 400)

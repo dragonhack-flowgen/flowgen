@@ -16,7 +16,9 @@
     "@mariozechner/pi-ai": "^0.67.68",
     "@mariozechner/pi-coding-agent": "^0.67.68",
     "dotenv": "^17.4.2",
-    "hono": "^4.7.10"
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.7.10",
+    "postgres": "^3.4.9"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
