@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router"
 import {
-  BookOpenIcon,
-  FileTextIcon,
+  CheckCircle2Icon,
+  CircleQuestionMarkIcon,
+  ClipboardListIcon,
+  CogIcon,
+  FilmIcon,
   PlayCircleIcon,
-  RocketIcon,
-  SettingsIcon,
-  ZapIcon,
+  SparklesIcon,
 } from "lucide-react"
 
 import { PageHeader } from "@/components/layout/page-header"
@@ -22,99 +23,161 @@ export const Route = createFileRoute("/help")({
   component: HelpPage,
 })
 
-const guides = [
+const quickStart = [
   {
-    icon: RocketIcon,
-    title: "Getting Started",
+    icon: SparklesIcon,
+    title: "Create a flow",
     description:
-      "Learn how to create your first flow, connect your codebase, and generate step-by-step documentation.",
-    badge: "Beginner",
+      'Use "Create New Flow" and provide a clear name + process description (goal, scope, expected result).',
+    badge: "Step 1",
   },
   {
-    icon: FileTextIcon,
-    title: "Creating Flows",
+    icon: ClipboardListIcon,
+    title: "Review and edit the guide",
     description:
-      "Describe what you want documented in plain language. FlowGen turns your prompt into numbered action steps automatically.",
-    badge: "Core",
+      "Open the flow, refine the generated guide text, then save when the steps reflect the exact UI behavior you want to document.",
+    badge: "Step 2",
   },
   {
-    icon: ZapIcon,
-    title: "Generating Action Steps",
+    icon: FilmIcon,
+    title: "Record a walkthrough video",
     description:
-      'Once a flow prompt is saved, click "Generate Steps" to produce a detailed markdown list of user actions.',
-    badge: "Core",
+      'Click "Record Video" in the Guide section after your steps are ready. FlowGen runs the guide and attaches the video when complete.',
+    badge: "Step 3",
   },
   {
     icon: PlayCircleIcon,
-    title: "Recording Videos",
+    title: "Publish user documentation",
     description:
-      'After steps are reviewed, click "Record Video" to create an automated walkthrough video of the entire flow.',
-    badge: "Core",
+      "Download the markdown instructions and video walkthrough to share with your team or embed in a knowledge base.",
+    badge: "Step 4",
+  },
+]
+
+const pages = [
+  {
+    icon: ClipboardListIcon,
+    title: "Flows",
+    description:
+      "Your working area. Create flows, edit prompts, update guides, record videos, and maintain user docs.",
   },
   {
-    icon: SettingsIcon,
-    title: "Connecting Your Codebase",
+    icon: CogIcon,
+    title: "Settings",
     description:
-      "Link a GitHub or GitLab repository in Settings so FlowGen can analyse your application and generate more accurate flows.",
-    badge: "Setup",
+      "Connect a GitHub/GitLab repository to keep docs grounded in your codebase.",
   },
   {
-    icon: BookOpenIcon,
-    title: "Editing & Re-running",
+    icon: CircleQuestionMarkIcon,
+    title: "Help",
     description:
-      "Every section — prompt, steps, and video — can be edited and re-run independently at any time.",
-    badge: "Advanced",
+      "Reference workflows, writing tips, and troubleshooting when generated output needs refinement.",
   },
+]
+
+const descriptionChecklist = [
+  "State what the process includes and excludes.",
+  "Describe observable actions, not abstract intent.",
+  "Include decision points and failure handling.",
+  "Finish with a concrete desired end state.",
 ]
 
 function HelpPage() {
   return (
     <div className="flex flex-col">
-      <div className="flex flex-col gap-4 p-4">
+      <div className="flex flex-col gap-3.5 p-4">
         <PageHeader title="Help" />
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Everything you need to know about FlowGen — from creating your first
-          flow to generating walkthrough videos of your application.
+          FlowGen turns process descriptions into editable guides, videos, and
+          user docs. Use this page as a practical playbook for daily usage.
         </p>
 
         <Separator />
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {guides.map((guide) => (
-            <Card key={guide.title} size="sm">
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <div className="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
-                    <guide.icon className="size-4" />
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Quick Start</h2>
+            <Badge variant="outline">Recommended order</Badge>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {quickStart.map((guide) => (
+              <Card key={guide.title} size="sm">
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <div className="flex size-8 items-center justify-center rounded-md bg-primary/10 text-primary">
+                      <guide.icon className="size-4" />
+                    </div>
+                    <Badge variant="outline">{guide.badge}</Badge>
                   </div>
-                  <Badge variant="outline">{guide.badge}</Badge>
-                </div>
-                <CardTitle>{guide.title}</CardTitle>
-                <CardDescription>{guide.description}</CardDescription>
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
+                  <CardTitle>{guide.title}</CardTitle>
+                  <CardDescription>{guide.description}</CardDescription>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        </section>
 
         <Separator />
 
-        <section className="flex max-w-2xl flex-col gap-4">
-          <h2 className="text-lg font-semibold">How it works</h2>
-          <ol className="flex flex-col gap-3">
-            {[
-              'Describe your user flow in the prompt field (e.g. "How does a new admin create an account?").',
-              "FlowGen analyses your codebase and generates a numbered list of action steps in markdown.",
-              'Review and edit the steps, then click "Record Video" to produce an automated walkthrough.',
-              "Share the generated documentation — steps and video — with your team.",
-            ].map((step, i) => (
-              <li key={i} className="flex items-start gap-3 text-sm">
-                <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+        <section className="flex flex-col gap-3">
+          <h2 className="text-lg font-semibold">What Each Page Does</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {pages.map((page) => (
+              <Card key={page.title} size="sm">
+                <CardHeader>
+                  <div className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                    <page.icon className="size-4" />
+                  </div>
+                  <CardTitle>{page.title}</CardTitle>
+                  <CardDescription>{page.description}</CardDescription>
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <Separator />
+
+        <section className="flex max-w-2xl flex-col gap-3">
+          <h2 className="text-lg font-semibold">
+            Writing Better Process Descriptions
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Better input gives better guides. Use this checklist before saving a
+            new flow prompt.
+          </p>
+          <ol className="flex flex-col gap-2">
+            {descriptionChecklist.map((item, i) => (
+              <li key={item} className="flex items-start gap-3 text-sm">
+                <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
                   {i + 1}
                 </span>
-                <span className="leading-relaxed">{step}</span>
+                <span className="leading-relaxed">{item}</span>
               </li>
             ))}
           </ol>
+        </section>
+
+        <Separator />
+
+        <section className="flex max-w-2xl flex-col gap-3">
+          <h2 className="text-lg font-semibold">Common Issues</h2>
+          <div className="flex flex-col gap-2 text-sm">
+            <div className="flex items-start gap-2 rounded-md border bg-muted/20 px-3 py-2">
+              <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>
+                If the guide is too generic, tighten the process description
+                with concrete page names and validation outcomes.
+              </span>
+            </div>
+            <div className="flex items-start gap-2 rounded-md border bg-muted/20 px-3 py-2">
+              <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-primary" />
+              <span>
+                If recording fails, update the instruction text to remove
+                ambiguous steps and retry Record Video.
+              </span>
+            </div>
+          </div>
         </section>
       </div>
     </div>
