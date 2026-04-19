@@ -132,11 +132,19 @@ async function flagFlow(flowId: string, reason?: string) {
   return res.json()
 }
 
-async function postToRecorder(flowId: string, task: string, startUrl?: string | null) {
+async function postToRecorder(
+  flowId: string,
+  task: string,
+  startUrl?: string | null
+) {
   const res = await fetch(`${RECORDER_API_URL}/recordings/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ task, taskId: flowId, startUrl: startUrl || undefined }),
+    body: JSON.stringify({
+      task,
+      taskId: flowId,
+      startUrl: startUrl || undefined,
+    }),
   })
   if (!res.ok) {
     const body = await res.text().catch(() => "Unknown error")
@@ -494,7 +502,9 @@ export function FlowDetailPanel({ flow }: FlowDetailPanelProps) {
     try {
       await approveFlow(flow.id)
       queryClient.invalidateQueries({ queryKey: ["flows"] })
-      toast.success("Flow approved", { description: "Exploration has started." })
+      toast.success("Flow approved", {
+        description: "Exploration has started.",
+      })
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to approve flow")
     }
@@ -556,7 +566,7 @@ export function FlowDetailPanel({ flow }: FlowDetailPanelProps) {
             <>
               <Button size="sm" onClick={handleReExplore}>
                 <RefreshCwIcon className="mr-1 size-4" />
-                Re-explore
+                Re-create
               </Button>
               <Button size="sm" variant="outline" onClick={handleDismiss}>
                 <XIcon className="mr-1 size-4" />
@@ -575,7 +585,9 @@ export function FlowDetailPanel({ flow }: FlowDetailPanelProps) {
 
       {flow.error && flow.status === "needs_update" && (
         <div className="border-b border-amber-500/50 bg-amber-500/5 px-4 py-3">
-          <h3 className="text-sm font-medium text-amber-600">Update Detected</h3>
+          <h3 className="text-sm font-medium text-amber-600">
+            Update Detected
+          </h3>
           <p className="mt-1 text-sm text-amber-600/80">{flow.error}</p>
         </div>
       )}
