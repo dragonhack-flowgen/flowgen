@@ -27,7 +27,7 @@ function repoCachePath(gitUrl: string): string {
   return join(CACHE_DIR, normalized)
 }
 
-async function cloneOrUpdateRepo(gitUrl: string): Promise<string> {
+export async function cloneOrUpdateRepo(gitUrl: string): Promise<string> {
   const repoDir = repoCachePath(gitUrl)
 
   try {
@@ -50,6 +50,39 @@ async function cloneOrUpdateRepo(gitUrl: string): Promise<string> {
     const message = error instanceof Error ? error.message : "Unknown git error"
     throw new Error(`Failed to access repository ${gitUrl}: ${message}`)
   }
+}
+
+export async function getHeadCommit(repoPath: string): Promise<string> {
+  const { stdout } = await execFileAsync("git", ["rev-parse", "HEAD"], {
+    cwd: repoPath,
+  })
+  return stdout.trim()
+}
+
+export async function getCommitLog(
+  repoPath: string,
+  fromCommit: string,
+  toCommit: string
+): Promise<string> {
+  const { stdout } = await execFileAsync(
+    "git",
+    ["log", "--oneline", `${fromCommit}..${toCommit}`],
+    { cwd: repoPath }
+  )
+  return stdout.trim()
+}
+
+export async function getDiff(
+  repoPath: string,
+  fromCommit: string,
+  toCommit: string
+): Promise<string> {
+  const { stdout } = await execFileAsync(
+    "git",
+    ["diff", `${fromCommit}..${toCommit}`],
+    { cwd: repoPath }
+  )
+  return stdout.trim()
 }
 
 const SYSTEM_PROMPT = `You are a codebase exploration agent. Your job is to explore a codebase's UI components, routes, and navigation to understand how a specific user flow works, then produce TWO separate step-by-step guides.

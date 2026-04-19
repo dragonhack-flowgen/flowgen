@@ -13,6 +13,8 @@ export const flowStatusEnum = pgEnum("flow_status", [
   "running",
   "completed",
   "failed",
+  "pending_approval",
+  "needs_update",
 ])
 
 export const recordingStatusEnum = pgEnum("recording_status", [
@@ -25,6 +27,7 @@ export const recordingStatusEnum = pgEnum("recording_status", [
 export const settings = pgTable("settings", {
   id: integer().primaryKey().default(1),
   gitUrl: text("git_url").notNull(),
+  lastExploredCommit: text("last_explored_commit"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 

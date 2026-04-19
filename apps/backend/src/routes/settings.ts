@@ -23,7 +23,7 @@ function isSupportedGitUrl(gitUrl: string): boolean {
 export const settingsRoute = new Hono()
   .get("/", async (c) => {
     const [row] = await db.select().from(settings).where(eq(settings.id, 1))
-    return c.json({ gitUrl: row?.gitUrl ?? null } as const)
+    return c.json({ gitUrl: row?.gitUrl ?? null, lastExploredCommit: row?.lastExploredCommit ?? null } as const)
   })
   .put("/", async (c) => {
     let body: { gitUrl?: string; git_url?: string }

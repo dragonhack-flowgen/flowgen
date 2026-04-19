@@ -101,7 +101,7 @@ export function useSettings() {
     queryKey: ["settings"],
     queryFn: async () => {
       const res = await client.settings.$get()
-      return handleResponse<{ gitUrl: string | null }>(res)
+      return handleResponse<{ gitUrl: string | null; lastExploredCommit: string | null }>(res)
     },
   })
 }

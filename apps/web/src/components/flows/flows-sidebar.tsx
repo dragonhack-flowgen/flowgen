@@ -1,10 +1,13 @@
 import * as React from "react"
 import { Link, useSearch } from "@tanstack/react-router"
-import { FileTextIcon } from "lucide-react"
+import { FileTextIcon, AlertCircleIcon, SearchIcon } from "lucide-react"
+import { toast } from "sonner"
+import { useQueryClient } from "@tanstack/react-query"
 
 import { useSidebarResize } from "@/hooks/use-sidebar-resize"
 import { useFlows } from "@/hooks/use-flows"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { SidebarInput } from "@/components/ui/sidebar"
 import { Switch } from "@/components/ui/switch"
@@ -24,7 +27,8 @@ function getStatusVariant(
 ): "default" | "secondary" | "outline" | "destructive" {
   if (status === "completed") return "default"
   if (status === "failed") return "destructive"
-  if (status === "pending") return "outline"
+  if (status === "pending" || status === "pending_approval") return "outline"
+  if (status === "needs_update") return "destructive"
   return "secondary"
 }
 
@@ -36,6 +40,33 @@ export function FlowsSidebar() {
   const [searchQuery, setSearchQuery] = React.useState("")
 
   const { data: flows, isLoading } = useFlows()
+  const queryClient = useQueryClient()
+  const [isDiscovering, setIsDiscovering] = React.useState(false)
+
+  async function handleDiscover() {
+    setIsDiscovering(true)
+    try {
+      const apiBaseUrl =
+        import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
+      const res = await fetch(`${apiBaseUrl}/flows/discover`, {
+        method: "POST",
+      })
+      if (!res.ok) {
+        const body = await res.text().catch(() => "Unknown error")
+        throw new Error(`API ${res.status}: ${body}`)
+      }
+      toast.success("Discovery started", {
+        description: "Checking for new and changed flows...",
+      })
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["flows"] })
+        setIsDiscovering(false)
+      }, 5000)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Discovery failed")
+      setIsDiscovering(false)
+    }
+  }
 
   const visibleFlows = React.useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase()
@@ -49,7 +80,10 @@ export function FlowsSidebar() {
 
       const matchesProgressFilter =
         !showInProgressOnly ||
-        (flow.status !== "completed" && flow.status !== "failed")
+        (flow.status !== "completed" &&
+          flow.status !== "failed" &&
+          flow.status !== "pending_approval" &&
+          flow.status !== "needs_update")
 
       return matchesQuery && matchesProgressFilter
     })
@@ -84,12 +118,28 @@ export function FlowsSidebar() {
           />
         </Label>
       </div>
-      <div className="border-b p-4">
-        <SidebarInput
-          value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder="Search flows..."
-        />
+      <div className="flex items-center gap-2 border-b p-4">
+        <div className="relative flex-1">
+          <SearchIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <SidebarInput
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search flows..."
+            className="pl-8"
+          />
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={handleDiscover}
+          disabled={isDiscovering}
+        >
+          {isDiscovering ? (
+            <Spinner className="mr-1 size-4" />
+          ) : (
+            "Discover New"
+          )}
+        </Button>
       </div>
       <nav className="flex-1 overflow-y-auto">
         {isLoading ? (
@@ -116,6 +166,9 @@ export function FlowsSidebar() {
                   <div className="flex w-full items-center gap-2">
                     <FileTextIcon className="size-4 shrink-0" />
                     <span className="truncate font-medium">{flow.name}</span>
+                    {flow.status === "needs_update" && (
+                      <AlertCircleIcon className="size-4 shrink-0 text-red-500" />
+                    )}
                     <span className="ml-auto text-xs text-muted-foreground">
                       {new Date(flow.createdAt).toLocaleDateString()}
                     </span>
