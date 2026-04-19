@@ -9,12 +9,15 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
-import { Route as AboutRouteImport } from "./routes/about"
+import { Route as FlowsRouteImport } from "./routes/flows"
 import { Route as IndexRouteImport } from "./routes/index"
+import { Route as FlowsIndexRouteImport } from "./routes/flows/index"
+import { Route as FlowsFlowIdIndexRouteImport } from "./routes/flows/$flowId/index"
+import { Route as FlowsFlowIdEditRouteImport } from "./routes/flows/$flowId/edit"
 
-const AboutRoute = AboutRouteImport.update({
-  id: "/about",
-  path: "/about",
+const FlowsRoute = FlowsRouteImport.update({
+  id: "/flows",
+  path: "/flows",
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -22,40 +25,74 @@ const IndexRoute = IndexRouteImport.update({
   path: "/",
   getParentRoute: () => rootRouteImport,
 } as any)
+const FlowsIndexRoute = FlowsIndexRouteImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => FlowsRoute,
+} as any)
+const FlowsFlowIdIndexRoute = FlowsFlowIdIndexRouteImport.update({
+  id: "/$flowId/",
+  path: "/$flowId/",
+  getParentRoute: () => FlowsRoute,
+} as any)
+const FlowsFlowIdEditRoute = FlowsFlowIdEditRouteImport.update({
+  id: "/$flowId/edit",
+  path: "/$flowId/edit",
+  getParentRoute: () => FlowsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
-  "/about": typeof AboutRoute
+  "/flows": typeof FlowsRouteWithChildren
+  "/flows/": typeof FlowsIndexRoute
+  "/flows/$flowId/edit": typeof FlowsFlowIdEditRoute
+  "/flows/$flowId/": typeof FlowsFlowIdIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
-  "/about": typeof AboutRoute
+  "/flows": typeof FlowsIndexRoute
+  "/flows/$flowId/edit": typeof FlowsFlowIdEditRoute
+  "/flows/$flowId": typeof FlowsFlowIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
-  "/about": typeof AboutRoute
+  "/flows": typeof FlowsRouteWithChildren
+  "/flows/": typeof FlowsIndexRoute
+  "/flows/$flowId/edit": typeof FlowsFlowIdEditRoute
+  "/flows/$flowId/": typeof FlowsFlowIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/about"
+  fullPaths:
+    | "/"
+    | "/flows"
+    | "/flows/"
+    | "/flows/$flowId/edit"
+    | "/flows/$flowId/"
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/about"
-  id: "__root__" | "/" | "/about"
+  to: "/" | "/flows" | "/flows/$flowId/edit" | "/flows/$flowId"
+  id:
+    | "__root__"
+    | "/"
+    | "/flows"
+    | "/flows/"
+    | "/flows/$flowId/edit"
+    | "/flows/$flowId/"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
+  FlowsRoute: typeof FlowsRouteWithChildren
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/about": {
-      id: "/about"
-      path: "/about"
-      fullPath: "/about"
-      preLoaderRoute: typeof AboutRouteImport
+    "/flows": {
+      id: "/flows"
+      path: "/flows"
+      fullPath: "/flows"
+      preLoaderRoute: typeof FlowsRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/": {
@@ -65,12 +102,47 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    "/flows/": {
+      id: "/flows/"
+      path: "/"
+      fullPath: "/flows/"
+      preLoaderRoute: typeof FlowsIndexRouteImport
+      parentRoute: typeof FlowsRoute
+    }
+    "/flows/$flowId/": {
+      id: "/flows/$flowId/"
+      path: "/$flowId"
+      fullPath: "/flows/$flowId/"
+      preLoaderRoute: typeof FlowsFlowIdIndexRouteImport
+      parentRoute: typeof FlowsRoute
+    }
+    "/flows/$flowId/edit": {
+      id: "/flows/$flowId/edit"
+      path: "/$flowId/edit"
+      fullPath: "/flows/$flowId/edit"
+      preLoaderRoute: typeof FlowsFlowIdEditRouteImport
+      parentRoute: typeof FlowsRoute
+    }
   }
 }
 
+interface FlowsRouteChildren {
+  FlowsIndexRoute: typeof FlowsIndexRoute
+  FlowsFlowIdEditRoute: typeof FlowsFlowIdEditRoute
+  FlowsFlowIdIndexRoute: typeof FlowsFlowIdIndexRoute
+}
+
+const FlowsRouteChildren: FlowsRouteChildren = {
+  FlowsIndexRoute: FlowsIndexRoute,
+  FlowsFlowIdEditRoute: FlowsFlowIdEditRoute,
+  FlowsFlowIdIndexRoute: FlowsFlowIdIndexRoute,
+}
+
+const FlowsRouteWithChildren = FlowsRoute._addFileChildren(FlowsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
+  FlowsRoute: FlowsRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
