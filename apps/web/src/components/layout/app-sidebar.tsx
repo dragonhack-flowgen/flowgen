@@ -54,14 +54,16 @@ function isNavItemActive(
 function SidebarHeaderContent() {
   return (
     <SidebarHeader className="gap-0 p-0">
-      <div className="flex h-14 items-center justify-between border-b px-4 pt-1 group-data-[collapsible=icon]:justify-center">
+      <div className="flex items-center justify-between border-b px-4 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
         <Link
           to="/flows"
           className="flex min-w-0 items-center gap-3 group-data-[collapsible=icon]:hidden"
         >
-          <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <span className="text-sm font-bold">FG</span>
-          </div>
+          <img
+            src="/flowgenlogo.svg"
+            alt="FlowGen logo"
+            className="size-8 shrink-0 rounded-lg"
+          />
           <span className="truncate text-base font-semibold text-foreground">
             FlowGen
           </span>
