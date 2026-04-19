@@ -28,9 +28,31 @@ npm-debug.log*
 # Misc
 .DS_Store
 *.pem
+Thumbs.db
 
-__pycache__
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+*.egg-info/
+uv.lock
 
+# AI tooling
+.agents/
+opencode.json
+skills-lock.json
+
+# Editor / IDE
+.vscode/
+.idea/
+
+# Browser-use output
+recordings/
+gifs/
 task_records/
 conversations/
 step_traces/
