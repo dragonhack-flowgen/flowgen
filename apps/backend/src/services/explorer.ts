@@ -1,0 +1,220 @@
+import { execFile } from "node:child_process"
+import { mkdir } from "node:fs/promises"
+import { existsSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { promisify } from "node:util"
+import { getModel } from "@mariozechner/pi-ai"
+import {
+  AuthStorage,
+  createAgentSession,
+  createExtensionRuntime,
+  createReadOnlyTools,
+  ModelRegistry,
+  type ResourceLoader,
+  SessionManager,
+  SettingsManager,
+} from "@mariozechner/pi-coding-agent"
+import type { Guide } from "./structured-output.js"
+import { submitGuideTool } from "./structured-output.js"
+
+const execFileAsync = promisify(execFile)
+
+const CACHE_DIR = join(tmpdir(), "flowgen-repos")
+
+function repoCachePath(gitUrl: string): string {
+  const normalized = gitUrl.replace(/[^a-zA-Z0-9._-]/g, "_")
+  return join(CACHE_DIR, normalized)
+}
+
+async function cloneOrUpdateRepo(gitUrl: string): Promise<string> {
+  const repoDir = repoCachePath(gitUrl)
+
+  if (existsSync(join(repoDir, ".git"))) {
+    console.log(`[explorer] Cache hit, pulling latest for ${gitUrl}`)
+    await execFileAsync("git", ["pull", "--ff-only"], {
+      cwd: repoDir,
+      timeout: 30_000,
+    })
+    return repoDir
+  }
+
+  console.log(`[explorer] Cloning ${gitUrl}...`)
+  await mkdir(CACHE_DIR, { recursive: true })
+  await execFileAsync("git", ["clone", "--depth", "1", gitUrl, repoDir], {
+    timeout: 60_000,
+  })
+  return repoDir
+}
+
+const SYSTEM_PROMPT = `You are a codebase exploration agent. Your job is to explore a codebase's UI components, routes, and navigation to understand how a specific user flow works, then produce a step-by-step instruction guide for non-technical end users.
+
+Process:
+1. Start by understanding the project structure (read package.json, look at the src/ or app/ directory)
+2. Identify the routing setup and page components
+3. Find the specific UI components involved in the requested flow
+4. Trace the user-facing interactions from start to finish
+5. When you have a complete understanding, call submit_guide with a title and ordered steps
+
+Rules:
+- Each step must reference UI elements by their visible labels or descriptions
+- Steps should be actionable and specific (e.g., "Click the 'Settings' gear icon in the top-right corner")
+- Assume the user has no technical knowledge
+- If you cannot fully understand the flow, still submit your best effort with a note about uncertainty
+- If there are multiple ways to accomplish the requested flow, always choose the simplest and most straightforward option
+- You MUST call submit_guide exactly once before finishing`
+
+export async function runExploration(
+  gitUrl: string,
+  flow: string
+): Promise<Guide> {
+  console.log(`[explorer] Fetching ${gitUrl}...`)
+  const repoPath = await cloneOrUpdateRepo(gitUrl)
+  console.log(`[explorer] Repo ready at ${repoPath}`)
+
+  return await executeAgent(repoPath, flow)
+}
+
+async function executeAgent(repoPath: string, flow: string): Promise<Guide> {
+  const providerId = process.env.PROVIDER_ID || "anthropic"
+  const modelId = process.env.MODEL_ID || "claude-sonnet-4-20250514"
+  console.log(`[explorer] Provider: ${providerId}, Model: ${modelId}`)
+
+  const authStorage = AuthStorage.create(
+    join(tmpdir(), `flowgen-auth-${Date.now()}`)
+  )
+
+  const apiKeyEnv = `${providerId.toUpperCase()}_API_KEY`
+  const apiKey = process.env[apiKeyEnv] || process.env.ANTHROPIC_API_KEY
+  console.log(`[explorer] API key env: ${apiKeyEnv}, found: ${!!apiKey}`)
+  if (apiKey) {
+    authStorage.setRuntimeApiKey(providerId, apiKey)
+  }
+
+  const modelRegistry = ModelRegistry.inMemory(authStorage)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let model = getModel(providerId as any, modelId as any)
+  if (!model) {
+    console.log(`[explorer] Model not built-in, registering custom model...`)
+    modelRegistry.registerProvider(providerId, {
+      api: "openai-completions",
+      baseUrl: "https://api.z.ai/api/coding/paas/v4",
+      models: [
+        {
+          id: modelId,
+          name: modelId,
+          api: "openai-completions",
+          baseUrl: "https://api.z.ai/api/coding/paas/v4",
+          reasoning: true,
+          input: ["text"],
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+          contextWindow: 131072,
+          maxTokens: 98304,
+          compat: { supportsDeveloperRole: false, thinkingFormat: "zai" },
+        },
+      ],
+    })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    model = getModel(providerId as any, modelId as any)
+  }
+  if (!model) throw new Error(`Model not found: ${providerId}/${modelId}`)
+  console.log(`[explorer] Model resolved: ${model.id} (${model.api})`)
+
+  const resourceLoader: ResourceLoader = {
+    getExtensions: () => ({
+      extensions: [],
+      errors: [],
+      runtime: createExtensionRuntime(),
+    }),
+    getSkills: () => ({ skills: [], diagnostics: [] }),
+    getPrompts: () => ({ prompts: [], diagnostics: [] }),
+    getThemes: () => ({ themes: [], diagnostics: [] }),
+    getAgentsFiles: () => ({ agentsFiles: [] }),
+    getSystemPrompt: () => SYSTEM_PROMPT,
+    getAppendSystemPrompt: () => [],
+    extendResources: () => {},
+    reload: async () => {},
+  }
+
+  const settingsManager = SettingsManager.inMemory({
+    compaction: { enabled: false },
+    retry: { enabled: true, maxRetries: 2 },
+  })
+
+  console.log("[explorer] Creating agent session...")
+
+  const { session } = await createAgentSession({
+    cwd: repoPath,
+    agentDir: join(tmpdir(), `flowgen-agent-${Date.now()}`),
+    model,
+    thinkingLevel: "off",
+    authStorage,
+    modelRegistry,
+    resourceLoader,
+    tools: createReadOnlyTools(repoPath),
+    customTools: [submitGuideTool],
+    sessionManager: SessionManager.inMemory(),
+    settingsManager,
+  })
+
+  console.log("[explorer] Agent session created")
+
+  let guideResult: Guide | null = null
+
+  session.subscribe((event) => {
+    if (event.type === "tool_execution_start") {
+      console.log(`[explorer] Tool start: ${event.toolName}`)
+    }
+    if (event.type === "tool_execution_end") {
+      console.log(
+        `[explorer] Tool end: ${event.toolName}, error: ${event.isError}`
+      )
+    }
+    if (event.type === "turn_end") {
+      const e = event as unknown as {
+        turnIndex: number
+        toolResults: unknown[]
+      }
+      console.log(
+        `[explorer] Turn ${e.turnIndex} end, tools: ${e.toolResults.length}`
+      )
+    }
+    if (event.type === "agent_end") {
+      console.log("[explorer] Agent ended")
+    }
+    if (
+      event.type === "message_update" &&
+      event.assistantMessageEvent.type === "text_delta"
+    ) {
+      process.stdout.write(event.assistantMessageEvent.delta)
+    }
+    if (
+      event.type === "tool_execution_end" &&
+      event.toolName === "submit_guide" &&
+      !event.isError
+    ) {
+      console.log(
+        "[explorer] submit_guide result:",
+        JSON.stringify(event.result, null, 2)
+      )
+      const result = event.result as Record<string, unknown>
+      guideResult = (result.details ?? result) as Guide
+    }
+  })
+
+  console.log(`[explorer] Sending prompt: "${flow}"`)
+  await session.prompt(
+    `Explore this codebase and generate a user guide for the following flow:\n\n${flow}`
+  )
+
+  if (!guideResult) {
+    throw new Error("Agent completed without submitting a guide")
+  }
+
+  const guide = guideResult as Guide
+  console.log(
+    `[explorer] Guide received: "${guide.title}" (${guide.steps.length} steps)`
+  )
+  return guide
+}
