@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useEffect, useMemo, useState } from "react"
-import { GitBranchIcon, GitForkIcon, UnlinkIcon } from "lucide-react"
+import { useState } from "react"
+import { GlobeIcon, GitBranchIcon, GitForkIcon, UnlinkIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { useDeleteSettings, useSettings, useUpdateSettings } from "@/hooks/use-flows"
@@ -65,19 +65,26 @@ function SettingsPage() {
   const updateSettings = useUpdateSettings()
   const deleteSettings = useDeleteSettings()
   const [repoUrl, setRepoUrl] = useState("")
+  const [demoUrl, setDemoUrl] = useState("")
+  const [prevGitUrl, setPrevGitUrl] = useState<string | null>(null)
+  const [prevDemoUrl, setPrevDemoUrl] = useState<string | null | undefined>(undefined)
 
-  const connection = useMemo(
-    () =>
-      settingsQuery.data?.gitUrl
-        ? parseRepositoryUrl(settingsQuery.data.gitUrl)
-        : null,
-    [settingsQuery.data?.gitUrl]
-  )
+  const gitUrl = settingsQuery.data?.gitUrl ?? null
+  const serverDemoUrl = settingsQuery.data?.demoUrl
 
-  useEffect(() => {
-    if (!settingsQuery.data?.gitUrl) return
-    setRepoUrl(settingsQuery.data.gitUrl)
-  }, [settingsQuery.data?.gitUrl])
+  if (gitUrl !== prevGitUrl) {
+    setPrevGitUrl(gitUrl)
+    if (gitUrl) setRepoUrl(gitUrl)
+  }
+
+  if (serverDemoUrl !== prevDemoUrl) {
+    setPrevDemoUrl(serverDemoUrl)
+    if (serverDemoUrl != null) setDemoUrl(serverDemoUrl)
+  }
+
+  const connection = gitUrl
+    ? parseRepositoryUrl(gitUrl)
+    : null
 
   async function handleConnect() {
     const parsed = parseRepositoryUrl(repoUrl)
@@ -93,8 +100,10 @@ function SettingsPage() {
     try {
       const result = await updateSettings.mutateAsync({
         gitUrl: repoUrl.trim().replace(/\.git$/, ""),
+        demoUrl: demoUrl.trim() || null,
       })
       setRepoUrl(result.gitUrl)
+      setDemoUrl(result.demoUrl ?? "")
       toast.success(`Connected to ${providerLabel(parsed.provider)} repository`)
     } catch (error) {
       toast.error(
@@ -107,10 +116,30 @@ function SettingsPage() {
     try {
       await deleteSettings.mutateAsync()
       setRepoUrl("")
+      setDemoUrl("")
       toast.info("Repository disconnected")
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : "Failed to disconnect repository"
+      )
+    }
+  }
+
+  async function handleSaveDemoUrl() {
+    if (!settingsQuery.data?.gitUrl) {
+      toast.error("Connect a repository first before setting a demo URL.")
+      return
+    }
+    try {
+      const result = await updateSettings.mutateAsync({
+        gitUrl: settingsQuery.data.gitUrl,
+        demoUrl: demoUrl.trim() || null,
+      })
+      setDemoUrl(result.demoUrl ?? "")
+      toast.success("Demo URL saved")
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to save demo URL"
       )
     }
   }
@@ -236,14 +265,64 @@ function SettingsPage() {
 
         <Separator />
 
-        {/* General Settings placeholder */}
+        {/* Demo URL */}
         <section className="flex max-w-2xl flex-col gap-4">
           <div>
-            <h2 className="text-lg font-semibold">General</h2>
+            <h2 className="text-lg font-semibold">Demo URL</h2>
             <p className="text-sm text-muted-foreground">
-              Additional settings will appear here in the future.
+              The URL where the browser agent will start when recording videos.
+              This should be the landing page of your deployed application.
             </p>
           </div>
+
+          {settingsQuery.isLoading ? (
+            <Card>
+              <CardContent className="flex items-center justify-center py-8">
+                <Spinner />
+              </CardContent>
+            </Card>
+          ) : !settingsQuery.data?.gitUrl ? (
+            <Alert>
+              <AlertTitle>No repository connected</AlertTitle>
+              <AlertDescription>
+                Connect a repository first to configure a demo URL.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Application URL</CardTitle>
+                <CardDescription>
+                  The browser agent will navigate here before executing each guide.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4">
+                <Field>
+                  <FieldLabel>Demo URL</FieldLabel>
+                  <Input
+                    placeholder="https://your-app.example.com"
+                    value={demoUrl}
+                    onChange={(e) => setDemoUrl(e.target.value)}
+                  />
+                </Field>
+                {demoUrl && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <GlobeIcon className="size-3" />
+                    <span className="truncate">{demoUrl}</span>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter>
+                <Button
+                  onClick={handleSaveDemoUrl}
+                  disabled={updateSettings.isPending}
+                >
+                  <GlobeIcon className="mr-2 size-4" />
+                  {updateSettings.isPending ? "Saving…" : "Save Demo URL"}
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
         </section>
       </div>
     </div>

@@ -101,7 +101,7 @@ export function useSettings() {
     queryKey: ["settings"],
     queryFn: async () => {
       const res = await client.settings.$get()
-      return handleResponse<{ gitUrl: string | null; lastExploredCommit: string | null }>(res)
+      return handleResponse<{ gitUrl: string | null; demoUrl: string | null; lastExploredCommit: string | null }>(res)
     },
   })
 }
@@ -109,9 +109,9 @@ export function useSettings() {
 export function useUpdateSettings() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (data: { gitUrl: string }) => {
+    mutationFn: async (data: { gitUrl: string; demoUrl?: string | null }) => {
       const res = await client.settings.$put({ json: data })
-      return handleResponse<{ gitUrl: string }>(res)
+      return handleResponse<{ gitUrl: string; demoUrl: string | null }>(res)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] })

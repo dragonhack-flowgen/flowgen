@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/input-group"
 import { Separator } from "@/components/ui/separator"
 import { type Flow, type FlowStatus } from "@/types/flow"
-import { useUpdateFlow } from "@/hooks/use-flows"
+import { useSettings, useUpdateFlow } from "@/hooks/use-flows"
 import {
   invalidateRecordingStatus,
   useRecordingStatus,
@@ -124,13 +124,13 @@ async function flagFlow(flowId: string, reason?: string) {
   return res.json()
 }
 
-async function postToRecorder(flowId: string, task: string) {
+async function postToRecorder(flowId: string, task: string, startUrl?: string | null) {
   const recorderUrl =
     import.meta.env.VITE_RECORDER_API_URL ?? "http://localhost:8000"
   const res = await fetch(`${recorderUrl}/recordings/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ task, taskId: flowId }),
+    body: JSON.stringify({ task, taskId: flowId, startUrl: startUrl || undefined }),
   })
   if (!res.ok) {
     const body = await res.text().catch(() => "Unknown error")
@@ -195,6 +195,7 @@ function GuideSection({ flow }: Readonly<{ flow: Flow }>) {
   const [isEditing, setIsEditing] = React.useState(false)
   const queryClient = useQueryClient()
   const updateFlow = useUpdateFlow()
+  const { data: settings } = useSettings()
   const { data: recording } = useRecordingStatus(flow.id)
   const previousRecordingStatus = React.useRef<string | null>(null)
 
@@ -255,7 +256,7 @@ function GuideSection({ flow }: Readonly<{ flow: Flow }>) {
       return
     }
     try {
-      await postToRecorder(flow.id, flow.guide)
+      await postToRecorder(flow.id, flow.guide, settings?.demoUrl)
       invalidateRecordingStatus(queryClient, flow.id)
       toast.success("Recording started", {
         description: "The recorder is now executing the guide.",
@@ -355,6 +356,9 @@ function GuideSection({ flow }: Readonly<{ flow: Flow }>) {
                   controls
                   className="w-full rounded-md border"
                   style={{ maxHeight: 360 }}
+                  onLoadedMetadata={(e) => {
+                    e.currentTarget.playbackRate = 0.8
+                  }}
                 />
               ) : (
                 <span className="text-xs text-muted-foreground">

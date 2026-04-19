@@ -75,6 +75,7 @@ class RunPaths:
 class RecordingRunRequest(BaseModel):
     task_id: str | None = Field(default=None, alias="taskId")
     task: str
+    start_url: str | None = Field(default=None, alias="startUrl")
 
     model_config = {"populate_by_name": True}
 
@@ -443,11 +444,11 @@ def build_browser_profile(raw_dir: Path) -> BrowserProfile:
     video_size = ViewportSize(width=width, height=height)
     return BrowserProfile(
         headless=env_bool("BROWSER_USE_HEADLESS", True),
-        minimum_wait_page_load_time=env_float("BROWSER_USE_MIN_PAGE_LOAD_WAIT", 0.75),
+        minimum_wait_page_load_time=env_float("BROWSER_USE_MIN_PAGE_LOAD_WAIT", 0.5),
         wait_for_network_idle_page_load_time=env_float(
-            "BROWSER_USE_NETWORK_IDLE_WAIT", 1.25
+            "BROWSER_USE_NETWORK_IDLE_WAIT", 0.5
         ),
-        wait_between_actions=env_float("BROWSER_USE_WAIT_BETWEEN_ACTIONS", 0.9),
+        wait_between_actions=env_float("BROWSER_USE_WAIT_BETWEEN_ACTIONS", 0.5),
         highlight_elements=env_bool("BROWSER_USE_HIGHLIGHT_ELEMENTS", True),
         dom_highlight_elements=env_bool("BROWSER_USE_DOM_HIGHLIGHT_ELEMENTS", False),
         interaction_highlight_color=env_str(
@@ -661,7 +662,9 @@ def build_manifest(
     )
 
 
-async def run_task(task: str, task_id: str | None = None) -> RecordingRunResponse:
+async def run_task(
+    task: str, task_id: str | None = None, start_url: str | None = None
+) -> RecordingRunResponse:
     load_dotenv(dotenv_path=Path(".env"), override=False)
     normalized_task = task.strip()
     if not normalized_task:
@@ -678,6 +681,9 @@ async def run_task(task: str, task_id: str | None = None) -> RecordingRunRespons
 
     started_at = utc_now()
     previous_videos = set(paths.raw_dir.glob("*.mp4"))
+
+    if start_url:
+        normalized_task = f"Navigate to {start_url}\n\nThen:\n{normalized_task}"
 
     agent = Agent(
         task=normalized_task,
@@ -718,7 +724,9 @@ async def run_task(task: str, task_id: str | None = None) -> RecordingRunRespons
     )
 
 
-async def run_recording_job(task: str, task_id: str) -> None:
+async def run_recording_job(
+    task: str, task_id: str, start_url: str | None = None
+) -> None:
     paths = make_run_paths(task_id)
     started_at = utc_now()
     current_step_number = 0
@@ -754,6 +762,9 @@ async def run_recording_job(task: str, task_id: str) -> None:
     normalized_task = task.strip()
     if not normalized_task:
         raise ValueError("task is required.")
+
+    if start_url:
+        normalized_task = f"Navigate to {start_url}\n\nThen:\n{normalized_task}"
 
     collector = StepCollector(paths.step_traces_dir, on_step=on_step)
     profile = build_browser_profile(paths.raw_dir)
@@ -914,7 +925,7 @@ async def run_recording(request: RecordingRunRequest) -> RecordingStartResponse:
         started_at=started_at,
     )
     background_task = asyncio.create_task(
-        run_recording_job(task=task, task_id=task_id),
+        run_recording_job(task=task, task_id=task_id, start_url=request.start_url),
         name=f"recording:{task_id}",
     )
     RUNNING_RECORDINGS[task_id] = background_task

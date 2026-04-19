@@ -51,6 +51,12 @@ export function useRecordingStatus(flowId: string | undefined) {
       return res.json()
     },
     enabled: !!flowId,
+    refetchInterval: (query) => {
+      const data = query.state.data
+      if (!data) return 2000
+      if (data.status === "queued" || data.status === "running") return 2000
+      return false
+    },
   })
 
   React.useEffect(() => {

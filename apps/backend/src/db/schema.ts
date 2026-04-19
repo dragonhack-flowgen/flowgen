@@ -27,6 +27,7 @@ export const recordingStatusEnum = pgEnum("recording_status", [
 export const settings = pgTable("settings", {
   id: integer().primaryKey().default(1),
   gitUrl: text("git_url").notNull(),
+  demoUrl: text("demo_url"),
   lastExploredCommit: text("last_explored_commit"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
