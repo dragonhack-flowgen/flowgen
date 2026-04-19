@@ -1,6 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { AppHeader } from "@/components/layout/app-header"
-import { PageHeader } from "@/components/layout/page-header"
 import { PlusIcon } from "lucide-react"
 import { CreateFlowModal } from "@/components/flows/create-flow-modal"
 
@@ -11,10 +9,7 @@ export const Route = createFileRoute("/")({
 function DashboardPage() {
   return (
     <div className="flex flex-col">
-      <AppHeader />
       <div className="flex flex-col gap-6 p-6">
-        <PageHeader title="Dashboard" />
-
         {/* Empty state — shown when no flows exist */}
         <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed p-12 text-center">
           <div className="rounded-full bg-muted p-4">
