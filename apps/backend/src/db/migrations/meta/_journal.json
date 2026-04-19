@@ -15,6 +15,13 @@
       "when": 1776549139230,
       "tag": "0001_grey_black_widow",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776840000000,
+      "tag": "0002_handy_surge",
+      "breakpoints": true
     }
   ]
 }
