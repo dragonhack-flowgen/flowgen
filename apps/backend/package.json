@@ -8,6 +8,7 @@
     "build": "tsc",
     "lint": "eslint",
     "format": "prettier --write \"**/*.ts\"",
+    "seed:demo": "tsx src/scripts/seed-demo-data.ts",
     "typecheck": "tsc --noEmit",
     "start": "tsx src/index.ts"
   },
