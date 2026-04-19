@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Link, useRouter } from "@tanstack/react-router"
-import { ListIcon, HomeIcon, PlusIcon, MoonIcon, SunIcon } from "lucide-react"
+import { ListIcon, MoonIcon, SunIcon } from "lucide-react"
 
 import { AppHeader } from "@/components/layout/app-header"
 
@@ -48,14 +48,8 @@ export function AppSidebar({
                 </div>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuButton
-              variant="variant"
-              onClick={() => router.navigate({ to: "/flows/new" })}
-            >
-              <PlusIcon />
-              <span>Create New Flow</span>
-            </SidebarMenuButton>
           </SidebarMenu>
+          <CreateFlowModal />
         </SidebarHeader>
 
         <SidebarContent>
