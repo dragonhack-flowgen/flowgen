@@ -30,21 +30,26 @@ function repoCachePath(gitUrl: string): string {
 async function cloneOrUpdateRepo(gitUrl: string): Promise<string> {
   const repoDir = repoCachePath(gitUrl)
 
-  if (existsSync(join(repoDir, ".git"))) {
-    console.log(`[explorer] Cache hit, pulling latest for ${gitUrl}`)
-    await execFileAsync("git", ["pull", "--ff-only"], {
-      cwd: repoDir,
-      timeout: 30_000,
+  try {
+    if (existsSync(join(repoDir, ".git"))) {
+      console.log(`[explorer] Cache hit, pulling latest for ${gitUrl}`)
+      await execFileAsync("git", ["pull", "--ff-only"], {
+        cwd: repoDir,
+        timeout: 30_000,
+      })
+      return repoDir
+    }
+
+    console.log(`[explorer] Cloning ${gitUrl}...`)
+    await mkdir(CACHE_DIR, { recursive: true })
+    await execFileAsync("git", ["clone", "--depth", "1", gitUrl, repoDir], {
+      timeout: 60_000,
     })
     return repoDir
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown git error"
+    throw new Error(`Failed to access repository ${gitUrl}: ${message}`)
   }
-
-  console.log(`[explorer] Cloning ${gitUrl}...`)
-  await mkdir(CACHE_DIR, { recursive: true })
-  await execFileAsync("git", ["clone", "--depth", "1", gitUrl, repoDir], {
-    timeout: 60_000,
-  })
-  return repoDir
 }
 
 const SYSTEM_PROMPT = `You are a codebase exploration agent. Your job is to explore a codebase's UI components, routes, and navigation to understand how a specific user flow works, then produce TWO separate step-by-step guides.

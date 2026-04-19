@@ -14,10 +14,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 import { PlusIcon } from "lucide-react"
 import { SidebarMenuButton } from "../ui/sidebar"
-import { useCreateFlow } from "@/hooks/use-flows"
+import { useCreateFlow, useSettings } from "@/hooks/use-flows"
 import { PromptFormFields } from "./prompt-form-fields"
 
 const formSchema = z.object({
@@ -35,6 +36,7 @@ export function CreateFlowModal() {
   const [open, setOpen] = React.useState(false)
   const navigate = useNavigate()
   const createFlow = useCreateFlow()
+  const settingsQuery = useSettings()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,6 +47,11 @@ export function CreateFlowModal() {
   })
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
+    if (!settingsQuery.data?.gitUrl) {
+      toast.error("Connect a repository in Settings before creating a flow")
+      return
+    }
+
     try {
       const result = await createFlow.mutateAsync(data)
       toast.success("Flow Created")
@@ -88,6 +95,17 @@ export function CreateFlowModal() {
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4">
+          {!settingsQuery.isLoading && !settingsQuery.data?.gitUrl ? (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>Repository required</AlertTitle>
+              <AlertDescription>
+                Connect a GitHub or GitLab repository in Settings before you
+                create a flow. The explorer runs against that repository&apos;s
+                code.
+              </AlertDescription>
+            </Alert>
+          ) : null}
+
           <PromptFormFields
             control={form.control}
             namePlaceholder="Admin User Creation Flow"
@@ -101,7 +119,16 @@ export function CreateFlowModal() {
             >
               Cancel
             </Button>
-            <Button type="submit">Create Flow</Button>
+            <Button
+              type="submit"
+              disabled={
+                createFlow.isPending ||
+                settingsQuery.isLoading ||
+                !settingsQuery.data?.gitUrl
+              }
+            >
+              {createFlow.isPending ? "Creating..." : "Create Flow"}
+            </Button>
           </Field>
         </form>
       </DialogContent>
