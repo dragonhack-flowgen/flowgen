@@ -10,6 +10,5 @@
       "directory": "packages/ui",
       "changeProcessCWD": true
     }
-  ],
-  "js/ts.tsdk.path": "node_modules/typescript/lib"
+  ]
 }
