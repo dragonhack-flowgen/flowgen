@@ -1,7 +1,6 @@
 import * as React from "react"
 import {
   AlertCircleIcon,
-  CheckCircleIcon,
   ExternalLinkIcon,
   FilmIcon,
   LoaderCircleIcon,
@@ -20,7 +19,6 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group"
 import { Separator } from "@/components/ui/separator"
-import { Spinner } from "@/components/ui/spinner"
 import { type Flow, type FlowStatus } from "@/types/flow"
 import { useUpdateFlow } from "@/hooks/use-flows"
 import {
@@ -189,37 +187,6 @@ function GuideSection({ flow }: Readonly<{ flow: Flow }>) {
     }
   }
 
-  const recordingStatusExtra = (() => {
-    if (!recording) return undefined
-    if (isRecordingActive) {
-      return (
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <LoaderCircleIcon className="size-3.5 animate-spin" />
-          {recording.status === "queued"
-            ? "Queued…"
-            : `Recording — step ${recording.currentStepNumber}${recording.currentTitle ? ` (${recording.currentTitle})` : ""}`}
-        </div>
-      )
-    }
-    if (recording.status === "completed") {
-      return (
-        <div className="flex items-center gap-1.5 text-xs text-emerald-600">
-          <CheckCircleIcon className="size-3.5" />
-          Recording complete
-        </div>
-      )
-    }
-    if (recording.status === "failed") {
-      return (
-        <div className="flex items-center gap-1.5 text-xs text-destructive">
-          <AlertCircleIcon className="size-3.5" />
-          Recording failed
-        </div>
-      )
-    }
-    return undefined
-  })()
-
   return (
     <EditableSection
       title="Guide"
@@ -233,7 +200,6 @@ function GuideSection({ flow }: Readonly<{ flow: Flow }>) {
       runLabel="Record Video"
       onRun={handleRecord}
       isRunning={isRecordingActive}
-      headerExtra={recordingStatusExtra}
       readView={
         <div className="flex flex-col gap-4">
           {flow.guide ? (
@@ -460,7 +426,7 @@ export function FlowDetailPanel({ flow }: FlowDetailPanelProps) {
 
       {(flow.status === "pending" || flow.status === "running") && (
         <div className="flex items-center gap-2 border-t px-6 py-3 text-sm text-muted-foreground">
-          <Spinner className="size-4" />
+          <LoaderCircleIcon className="size-4 animate-spin" />
           <span>
             {flow.status === "pending"
               ? "Exploration in progress..."

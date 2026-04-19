@@ -389,7 +389,27 @@ def load_status(task_id: str) -> RecordingStatusModel | None:
     status = RecordingStatusModel.model_validate(payload)
     is_active = task_id in RUNNING_RECORDINGS and not RUNNING_RECORDINGS[task_id].done()
     if status.status in {"queued", "running"} and not is_active:
-        status = status.model_copy(update={"is_active": False})
+        status = status.model_copy(
+            update={
+                "is_active": False,
+                "status": "failed",
+                "error": status.error or "Recording process was interrupted.",
+                "ended_at": isoformat_utc(utc_now()),
+            }
+        )
+        persist_status(
+            paths,
+            task_id=task_id,
+            task=status.task,
+            status="failed",
+            started_at=status.started_at,
+            ended_at=utc_now(),
+            current_step_number=status.current_step_number,
+            step_count=status.step_count,
+            current_url=status.current_url,
+            current_title=status.current_title,
+            error=status.error or "Recording process was interrupted.",
+        )
     else:
         status = status.model_copy(update={"is_active": is_active})
     return status
@@ -814,6 +834,28 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.on_event("startup")
+def cleanup_orphaned_recordings() -> None:
+    task_root = get_task_root()
+    if not task_root.exists():
+        return
+    now = utc_now()
+    for candidate in task_root.iterdir():
+        if not candidate.is_dir():
+            continue
+        status_path = candidate / "status.json"
+        payload = read_json(status_path)
+        if payload is None:
+            continue
+        if payload.get("status") in {"queued", "running"}:
+            paths = make_run_paths(candidate.name, create_dirs=False)
+            payload["status"] = "failed"
+            payload["error"] = "Recording process was interrupted (server restart)."
+            payload["endedAt"] = isoformat_utc(now)
+            payload["isActive"] = False
+            write_json(paths.status_path, payload)
 
 
 @app.get("/health")
