@@ -6,6 +6,10 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite"
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    host: "0.0.0.0",
+    allowedHosts: ["host.docker.internal"],
+  },
   plugins: [
     tanstackRouter({
       target: "react",
