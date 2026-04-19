@@ -1,9 +1,13 @@
 import * as React from "react"
 import {
   AlertCircleIcon,
+  CheckCircleIcon,
   ExternalLinkIcon,
   FilmIcon,
+  FlagIcon,
   LoaderCircleIcon,
+  RefreshCwIcon,
+  XIcon,
 } from "lucide-react"
 import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -12,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import * as z from "zod"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   InputGroup,
   InputGroupAddon,
@@ -40,7 +45,8 @@ function getStatusVariant(
 ): "default" | "secondary" | "outline" | "destructive" {
   if (status === "completed") return "default"
   if (status === "failed") return "destructive"
-  if (status === "pending") return "outline"
+  if (status === "pending" || status === "pending_approval") return "outline"
+  if (status === "needs_update") return "destructive"
   return "secondary"
 }
 
@@ -69,11 +75,59 @@ type FlowDetailPanelProps = Readonly<{
   flow: Flow
 }>
 
-const RECORDER_API_URL =
-  import.meta.env.VITE_RECORDER_API_URL ?? "http://localhost:8000"
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
+
+async function approveFlow(flowId: string) {
+  const res = await fetch(`${API_BASE_URL}/flows/${flowId}/approve`, {
+    method: "POST",
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => "Unknown error")
+    throw new Error(`API ${res.status}: ${body}`)
+  }
+  return res.json()
+}
+
+async function reExploreFlow(flowId: string) {
+  const res = await fetch(`${API_BASE_URL}/flows/${flowId}/re-explore`, {
+    method: "POST",
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => "Unknown error")
+    throw new Error(`API ${res.status}: ${body}`)
+  }
+  return res.json()
+}
+
+async function dismissFlow(flowId: string) {
+  const res = await fetch(`${API_BASE_URL}/flows/${flowId}/dismiss`, {
+    method: "POST",
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => "Unknown error")
+    throw new Error(`API ${res.status}: ${body}`)
+  }
+  return res.json()
+}
+
+async function flagFlow(flowId: string, reason?: string) {
+  const res = await fetch(`${API_BASE_URL}/flows/${flowId}/flag`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => "Unknown error")
+    throw new Error(`API ${res.status}: ${body}`)
+  }
+  return res.json()
+}
 
 async function postToRecorder(flowId: string, task: string) {
-  const res = await fetch(`${RECORDER_API_URL}/recordings/run`, {
+  const recorderUrl =
+    import.meta.env.VITE_RECORDER_API_URL ?? "http://localhost:8000"
+  const res = await fetch(`${recorderUrl}/recordings/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ task, taskId: flowId }),
@@ -141,6 +195,7 @@ function GuideSection({ flow }: Readonly<{ flow: Flow }>) {
   const [isEditing, setIsEditing] = React.useState(false)
   const queryClient = useQueryClient()
   const { data: recording } = useRecordingStatus(flow.id)
+  const updateFlow = useUpdateFlow()
 
   const isRecordingActive =
     recording?.status === "queued" || recording?.status === "running"
@@ -398,18 +453,96 @@ function UserDocsSection({ flow }: Readonly<{ flow: Flow }>) {
 /* ------------------------------------------------------------------ */
 
 export function FlowDetailPanel({ flow }: FlowDetailPanelProps) {
+  const queryClient = useQueryClient()
+
+  async function handleApprove() {
+    try {
+      await approveFlow(flow.id)
+      queryClient.invalidateQueries({ queryKey: ["flows"] })
+      toast.success("Flow approved", { description: "Exploration has started." })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to approve flow")
+    }
+  }
+
+  async function handleReExplore() {
+    try {
+      await reExploreFlow(flow.id)
+      queryClient.invalidateQueries({ queryKey: ["flows"] })
+      toast.success("Re-exploration started")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to re-explore")
+    }
+  }
+
+  async function handleDismiss() {
+    try {
+      await dismissFlow(flow.id)
+      queryClient.invalidateQueries({ queryKey: ["flows"] })
+      toast.success("Update dismissed")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to dismiss")
+    }
+  }
+
+  async function handleFlag() {
+    try {
+      await flagFlow(flow.id)
+      queryClient.invalidateQueries({ queryKey: ["flows"] })
+      toast.success("Flow flagged for review")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to flag flow")
+    }
+  }
+
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
       <div className="flex h-14 items-center justify-between border-b px-4">
         <div className="flex items-center gap-3">
           <h2 className="text-xl leading-none font-semibold">{flow.name}</h2>
+          {flow.status === "needs_update" && (
+            <AlertCircleIcon className="size-5 text-red-500" />
+          )}
           <Badge variant={getStatusVariant(flow.status)}>
             {getStatusLabel(flow.status)}
           </Badge>
         </div>
+        <div className="flex items-center gap-2">
+          {flow.status === "pending_approval" && (
+            <Button size="sm" onClick={handleApprove}>
+              <CheckCircleIcon className="mr-1 size-4" />
+              Approve
+            </Button>
+          )}
+          {flow.status === "needs_update" && (
+            <>
+              <Button size="sm" onClick={handleReExplore}>
+                <RefreshCwIcon className="mr-1 size-4" />
+                Re-explore
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleDismiss}>
+                <XIcon className="mr-1 size-4" />
+                Dismiss
+              </Button>
+            </>
+          )}
+          {flow.status === "completed" && (
+            <Button size="sm" variant="outline" onClick={handleFlag}>
+              <FlagIcon className="mr-1 size-4" />
+              Flag
+            </Button>
+          )}
+        </div>
       </div>
 
-      {flow.error && (
+      {flow.error && flow.status === "needs_update" && (
+        <div className="border-b border-amber-500/50 bg-amber-500/5 px-4 py-3">
+          <h3 className="text-sm font-medium text-amber-600">Update Detected</h3>
+          <p className="mt-1 text-sm text-amber-600/80">{flow.error}</p>
+        </div>
+      )}
+
+      {flow.error && flow.status === "failed" && (
         <div className="border-b border-destructive/50 bg-destructive/5 px-4 py-3">
           <h3 className="text-sm font-medium text-destructive">Error</h3>
           <p className="mt-1 text-sm text-destructive/80">{flow.error}</p>

@@ -3,6 +3,8 @@ export const FLOW_STATUSES = [
   "running",
   "completed",
   "failed",
+  "pending_approval",
+  "needs_update",
 ] as const
 
 export type FlowStatus = (typeof FLOW_STATUSES)[number]
