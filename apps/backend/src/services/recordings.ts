@@ -1,11 +1,9 @@
 import { resolve } from "node:path"
-import { readFile } from "node:fs/promises"
 import { UTApi, UTFile } from "uploadthing/server"
 import type {
   RecorderConfig,
   RecordingArtifacts,
   RecordingManifest,
-  RecordingStoredVideo,
   RunRecordingRequest,
   RunRecordingResult,
   UploadThingAcl,
@@ -83,19 +81,6 @@ export function getRecorderConfig(): RecorderConfig {
       "UPLOADTHING_SIGNED_URL_TTL_SECONDS",
       3_600
     ),
-  }
-}
-
-function emptyStoredVideo(error: string | null = null): RecordingStoredVideo {
-  return {
-    provider: null,
-    acl: null,
-    fileKey: null,
-    appUrl: null,
-    ufsUrl: null,
-    fileName: null,
-    fileSize: null,
-    error,
   }
 }
 
