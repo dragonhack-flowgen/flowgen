@@ -1,0 +1,13 @@
+{
+  "name": "recorder-api",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "docker compose -f ../../docker-compose.yml up -d --build recorder-api",
+    "docker:build": "./scripts/build-docker.sh",
+    "docker:up": "docker compose -f ../../docker-compose.yml up -d --build recorder-api",
+    "docker:logs": "docker compose -f ../../docker-compose.yml logs -f recorder-api",
+    "test:health": "curl -fsS http://localhost:8002/health",
+    "test:run": "curl -fsS -X POST http://localhost:8002/recordings/run -H 'Content-Type: application/json' -d '{\"task\":\"Open https://example.com and describe the page\"}'"
+  }
+}

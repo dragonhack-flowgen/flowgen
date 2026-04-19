@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
-    "predev": "docker compose up -d",
+    "predev": "pnpm --filter recorder-api run docker:up",
     "dev": "turbo dev",
     "lint": "turbo lint",
     "format": "turbo format",

@@ -92,7 +92,7 @@ export const recordingsRoute = new Hono()
       provider: "uploadthing",
       acl: uploadthingAcl || null,
       fileKey: result.data.key,
-      uploadUrl: result.data.url,
+      uploadUrl: result.data.ufsUrl,
       error: null,
     }
 
