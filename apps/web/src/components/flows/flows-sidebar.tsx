@@ -3,12 +3,13 @@ import { Link, useSearch } from "@tanstack/react-router"
 import { FileTextIcon } from "lucide-react"
 
 import { useSidebarResize } from "@/hooks/use-sidebar-resize"
+import { useFlows } from "@/hooks/use-flows"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { SidebarInput } from "@/components/ui/sidebar"
 import { Switch } from "@/components/ui/switch"
+import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
-import { MOCK_FLOWS } from "@/data/mock-flows"
 import { type FlowStatus } from "@/types/flow"
 
 function getStatusLabel(status: FlowStatus): string {
@@ -21,9 +22,9 @@ function getStatusLabel(status: FlowStatus): string {
 function getStatusVariant(
   status: FlowStatus
 ): "default" | "secondary" | "outline" | "destructive" {
-  if (status === "complete") return "default"
+  if (status === "completed") return "default"
   if (status === "failed") return "destructive"
-  if (status === "draft") return "outline"
+  if (status === "pending") return "outline"
   return "secondary"
 }
 
@@ -34,10 +35,13 @@ export function FlowsSidebar() {
   const [showInProgressOnly, setShowInProgressOnly] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
 
+  const { data: flows, isLoading } = useFlows()
+
   const visibleFlows = React.useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase()
+    if (!flows) return []
 
-    return MOCK_FLOWS.filter((flow) => {
+    return flows.filter((flow) => {
       const matchesQuery =
         normalizedQuery.length === 0 ||
         flow.name.toLowerCase().includes(normalizedQuery) ||
@@ -45,11 +49,11 @@ export function FlowsSidebar() {
 
       const matchesProgressFilter =
         !showInProgressOnly ||
-        (flow.status !== "complete" && flow.status !== "failed")
+        (flow.status !== "completed" && flow.status !== "failed")
 
       return matchesQuery && matchesProgressFilter
     })
-  }, [searchQuery, showInProgressOnly])
+  }, [flows, searchQuery, showInProgressOnly])
 
   const { dragRef, handleMouseDown } = useSidebarResize({
     direction: "right",
@@ -88,7 +92,11 @@ export function FlowsSidebar() {
         />
       </div>
       <nav className="flex-1 overflow-y-auto">
-        {visibleFlows.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center p-6">
+            <Spinner />
+          </div>
+        ) : visibleFlows.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-muted-foreground">
             No flows yet.
           </p>
@@ -109,7 +117,7 @@ export function FlowsSidebar() {
                     <FileTextIcon className="size-4 shrink-0" />
                     <span className="truncate font-medium">{flow.name}</span>
                     <span className="ml-auto text-xs text-muted-foreground">
-                      {new Date(flow.updated_at).toLocaleDateString()}
+                      {new Date(flow.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex w-full items-center gap-2">

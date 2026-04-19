@@ -17,6 +17,7 @@ import {
 
 import { PlusIcon } from "lucide-react"
 import { SidebarMenuButton } from "../ui/sidebar"
+import { useCreateFlow } from "@/hooks/use-flows"
 import { PromptFormFields } from "./prompt-form-fields"
 
 const formSchema = z.object({
@@ -33,6 +34,7 @@ const formSchema = z.object({
 export function CreateFlowModal() {
   const [open, setOpen] = React.useState(false)
   const navigate = useNavigate()
+  const createFlow = useCreateFlow()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,11 +44,15 @@ export function CreateFlowModal() {
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
-    toast.success("Flow Created", data)
-
-    setOpen(false)
-    navigate({ to: "/flows", search: { flowId: "123" } })
+  async function onSubmit(data: z.infer<typeof formSchema>) {
+    try {
+      const result = await createFlow.mutateAsync(data)
+      toast.success("Flow Created")
+      setOpen(false)
+      navigate({ to: "/flows", search: { flowId: result.id } })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create flow")
+    }
   }
 
   // Reset form when modal opens
