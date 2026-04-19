@@ -115,7 +115,7 @@ Rules:
 - If there are multiple ways to accomplish the requested flow, always choose the simplest and most straightforward option
 - You MUST call submit_guide exactly once before finishing`
 
-export interface ExplorationResult {
+interface ExplorationResult {
   guide: string
   userDocs: string
 }

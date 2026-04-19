@@ -50,7 +50,7 @@ Rules:
 - If no new flows or changed flows are found, submit empty arrays — this is valid
 - You MUST call submit_discovered_flows exactly once before finishing`
 
-export interface DiscoveryResult {
+interface DiscoveryResult {
   newFlows: Array<{ name: string; description: string }>
   changedFlows: Array<{ existingFlowName: string; reason: string }>
 }

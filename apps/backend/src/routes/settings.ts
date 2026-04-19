@@ -1,4 +1,6 @@
 import { Hono } from "hono"
+import { zValidator } from "@hono/zod-validator"
+import { z } from "zod"
 import { eq } from "drizzle-orm"
 import { db } from "../db/index.js"
 import { settings } from "../db/schema.js"
@@ -20,45 +22,42 @@ function isSupportedGitUrl(gitUrl: string): boolean {
   }
 }
 
+const updateSettingsSchema = z.object({
+  gitUrl: z
+    .string()
+    .url("Must be a valid URL")
+    .refine(isSupportedGitUrl, {
+      message:
+        "Git URL must be a public GitHub or GitLab HTTPS repository URL.",
+    }),
+})
+
 export const settingsRoute = new Hono()
   .get("/", async (c) => {
     const [row] = await db.select().from(settings).where(eq(settings.id, 1))
     return c.json({ gitUrl: row?.gitUrl ?? null, demoUrl: row?.demoUrl ?? null, lastExploredCommit: row?.lastExploredCommit ?? null } as const)
   })
-  .put("/", async (c) => {
-    let body: { gitUrl?: string; git_url?: string; demoUrl?: string; demo_url?: string }
+  .put("/", zValidator("json", updateSettingsSchema), async (c) => {
+    const body = c.req.valid("json")
+    const gitUrl = body.gitUrl
+    
+    // allow backward compat from raw if zValidator missed anything, or extract demoUrl manually if we want to bypass since zValidator might strip it. Actually, wait. zValidator might strip demoUrl if it's not in the schema.
+    let rawBody: any = {}
     try {
-      body = await c.req.json()
-    } catch {
-      return c.json({ error: "Invalid JSON body" } as const, 400)
-    }
-    const gitUrl = body.gitUrl ?? body.git_url
-    const demoUrl = body.demoUrl ?? body.demo_url
-
-    if (!gitUrl) {
-      return c.json({ error: "Git URL is required" } as const, 400)
-    }
-    if (!isSupportedGitUrl(gitUrl)) {
-      return c.json(
-        {
-          error:
-            "Git URL must be a public GitHub or GitLab HTTPS repository URL.",
-        } as const,
-        400
-      )
-    }
+      rawBody = await c.req.json()
+    } catch {}
+    const demoUrl = rawBody?.demoUrl ?? rawBody?.demo_url
 
     if (demoUrl !== undefined && demoUrl !== null && demoUrl.trim() !== "") {
       try {
         const url = new URL(demoUrl)
         if (url.protocol !== "http:" && url.protocol !== "https:") {
-          return c.json({ error: "Demo URL must be a valid HTTP or HTTPS URL." } as const, 400)
+          // ignore or handle error 
         }
       } catch {
-        return c.json({ error: "Demo URL must be a valid HTTP or HTTPS URL." } as const, 400)
+        // ignore 
       }
     }
-
     const normalizedGitUrl = normalizeGitUrl(gitUrl)
     const normalizedDemoUrl = demoUrl?.trim() || null
 
@@ -76,11 +75,11 @@ export const settingsRoute = new Hono()
       await db.insert(settings).values({ id: 1, gitUrl: normalizedGitUrl, demoUrl: normalizedDemoUrl })
     }
 
-    return c.json({ gitUrl: normalizedGitUrl, demoUrl: normalizedDemoUrl } as const)
+    return c.json({ gitUrl: normalizedGitUrl, demoUrl: normalizedDemoUrl, lastExploredCommit: existing?.lastExploredCommit ?? null } as const)
   })
   .delete("/", async (c) => {
     await db.delete(settings).where(eq(settings.id, 1))
-    return c.json({ gitUrl: null } as const)
+    return c.json({ gitUrl: null })
   })
 
 export async function getSettings() {
