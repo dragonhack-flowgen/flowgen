@@ -3,6 +3,23 @@ import { eq } from "drizzle-orm"
 import { db } from "../db/index.js"
 import { settings } from "../db/schema.js"
 
+function normalizeGitUrl(gitUrl: string): string {
+  return gitUrl.trim().replace(/\.git$/, "")
+}
+
+function isSupportedGitUrl(gitUrl: string): boolean {
+  try {
+    const url = new URL(normalizeGitUrl(gitUrl))
+    if (url.protocol !== "https:") return false
+    if (!["github.com", "gitlab.com"].includes(url.hostname)) return false
+
+    const [owner, repo] = url.pathname.split("/").filter(Boolean)
+    return Boolean(owner && repo)
+  } catch {
+    return false
+  }
+}
+
 export const settingsRoute = new Hono()
   .get("/", async (c) => {
     const [row] = await db.select().from(settings).where(eq(settings.id, 1))
@@ -20,6 +37,17 @@ export const settingsRoute = new Hono()
     if (!gitUrl) {
       return c.json({ error: "Git URL is required" } as const, 400)
     }
+    if (!isSupportedGitUrl(gitUrl)) {
+      return c.json(
+        {
+          error:
+            "Git URL must be a public GitHub or GitLab HTTPS repository URL.",
+        } as const,
+        400
+      )
+    }
+
+    const normalizedGitUrl = normalizeGitUrl(gitUrl)
 
     const [existing] = await db
       .select()
@@ -29,13 +57,17 @@ export const settingsRoute = new Hono()
     if (existing) {
       await db
         .update(settings)
-        .set({ gitUrl, updatedAt: new Date() })
+        .set({ gitUrl: normalizedGitUrl, updatedAt: new Date() })
         .where(eq(settings.id, 1))
     } else {
-      await db.insert(settings).values({ id: 1, gitUrl })
+      await db.insert(settings).values({ id: 1, gitUrl: normalizedGitUrl })
     }
 
-    return c.json({ gitUrl } as const)
+    return c.json({ gitUrl: normalizedGitUrl } as const)
+  })
+  .delete("/", async (c) => {
+    await db.delete(settings).where(eq(settings.id, 1))
+    return c.json({ gitUrl: null } as const)
   })
 
 export async function getSettings() {
