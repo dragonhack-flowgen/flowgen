@@ -3,55 +3,14 @@ import { Link, useSearch } from "@tanstack/react-router"
 import { FileTextIcon } from "lucide-react"
 
 import { useSidebarResize } from "@/hooks/use-sidebar-resize"
+import { useFlows } from "@/hooks/use-flows"
 import { Badge } from "@/components/ui/badge"
 import { Label } from "@/components/ui/label"
 import { SidebarInput } from "@/components/ui/sidebar"
 import { Switch } from "@/components/ui/switch"
+import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
-import { type Flow, type FlowStatus } from "@/types/flow"
-
-type SidebarFlow = Pick<Flow, "id" | "name" | "status"> & {
-  updatedAt: string
-  summary: string
-}
-
-const MOCK_FLOWS: SidebarFlow[] = [
-  {
-    id: "1",
-    name: "User Onboarding",
-    status: "complete",
-    updatedAt: "Today",
-    summary: "Guided onboarding from signup to first successful action.",
-  },
-  {
-    id: "2",
-    name: "Checkout Process",
-    status: "draft",
-    updatedAt: "Yesterday",
-    summary: "Covers cart review, payment details, and confirmation page.",
-  },
-  {
-    id: "3",
-    name: "Password Reset",
-    status: "generating",
-    updatedAt: "2 days ago",
-    summary: "Flow for forgot-password email, token validation, and reset.",
-  },
-  {
-    id: "4",
-    name: "Admin Dashboard Setup",
-    status: "pending_review",
-    updatedAt: "3 days ago",
-    summary: "Initial admin setup including roles, permissions, and defaults.",
-  },
-  {
-    id: "5",
-    name: "Profile Editing",
-    status: "recording",
-    updatedAt: "1 week ago",
-    summary: "User profile updates including image upload and preferences.",
-  },
-]
+import { type FlowStatus } from "@/types/flow"
 
 function getStatusLabel(status: FlowStatus): string {
   return status
@@ -63,9 +22,9 @@ function getStatusLabel(status: FlowStatus): string {
 function getStatusVariant(
   status: FlowStatus
 ): "default" | "secondary" | "outline" | "destructive" {
-  if (status === "complete") return "default"
+  if (status === "completed") return "default"
   if (status === "failed") return "destructive"
-  if (status === "draft") return "outline"
+  if (status === "pending") return "outline"
   return "secondary"
 }
 
@@ -76,22 +35,25 @@ export function FlowsSidebar() {
   const [showInProgressOnly, setShowInProgressOnly] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
 
+  const { data: flows, isLoading } = useFlows()
+
   const visibleFlows = React.useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase()
+    if (!flows) return []
 
-    return MOCK_FLOWS.filter((flow) => {
+    return flows.filter((flow) => {
       const matchesQuery =
         normalizedQuery.length === 0 ||
         flow.name.toLowerCase().includes(normalizedQuery) ||
-        flow.summary.toLowerCase().includes(normalizedQuery)
+        flow.description.toLowerCase().includes(normalizedQuery)
 
       const matchesProgressFilter =
         !showInProgressOnly ||
-        (flow.status !== "complete" && flow.status !== "failed")
+        (flow.status !== "completed" && flow.status !== "failed")
 
       return matchesQuery && matchesProgressFilter
     })
-  }, [searchQuery, showInProgressOnly])
+  }, [flows, searchQuery, showInProgressOnly])
 
   const { dragRef, handleMouseDown } = useSidebarResize({
     direction: "right",
@@ -130,7 +92,11 @@ export function FlowsSidebar() {
         />
       </div>
       <nav className="flex-1 overflow-y-auto">
-        {visibleFlows.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center p-6">
+            <Spinner />
+          </div>
+        ) : visibleFlows.length === 0 ? (
           <p className="px-4 py-6 text-center text-sm text-muted-foreground">
             No flows yet.
           </p>
@@ -151,7 +117,7 @@ export function FlowsSidebar() {
                     <FileTextIcon className="size-4 shrink-0" />
                     <span className="truncate font-medium">{flow.name}</span>
                     <span className="ml-auto text-xs text-muted-foreground">
-                      {flow.updatedAt}
+                      {new Date(flow.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex w-full items-center gap-2">
@@ -160,7 +126,7 @@ export function FlowsSidebar() {
                     </Badge>
                   </div>
                   <span className="line-clamp-2 text-xs whitespace-break-spaces text-muted-foreground">
-                    {flow.summary}
+                    {flow.description}
                   </span>
                 </Link>
               </li>
