@@ -39,7 +39,7 @@ export function useFlow(id: string) {
         param: { id },
       })
       await throwOnError(res)
-      return res.json()
+      return (await res.json()) as Flow
     },
     enabled: !!id,
     refetchInterval: (query) => {
