@@ -1,3 +1,4 @@
+import * as React from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 
 const RECORDER_API_URL =
@@ -28,9 +29,16 @@ export type RecordingData = {
   manifest: unknown
 }
 
+const recordingStatusQueryKey = (flowId: string | undefined) => [
+  "recording-status",
+  flowId,
+] as const
+
 export function useRecordingStatus(flowId: string | undefined) {
-  return useQuery<RecordingData | null>({
-    queryKey: ["recording-status", flowId],
+  const queryClient = useQueryClient()
+
+  const query = useQuery<RecordingData | null>({
+    queryKey: recordingStatusQueryKey(flowId),
     queryFn: async () => {
       const res = await fetch(
         `${RECORDER_API_URL}/recordings/${flowId}`
@@ -43,14 +51,41 @@ export function useRecordingStatus(flowId: string | undefined) {
       return res.json()
     },
     enabled: !!flowId,
-    refetchInterval: (query) => {
-      const data = query.state.data
-      if (!data) return false
-      if (data.status === "queued" || data.status === "running") return 3000
-      return false
-    },
-    refetchIntervalInBackground: true,
   })
+
+  React.useEffect(() => {
+    const recording = query.data
+    if (!flowId || !recording) return
+    if (recording.status === "completed" || recording.status === "failed") return
+
+    const eventSource = new EventSource(
+      `${RECORDER_API_URL}/recordings/${flowId}/events`
+    )
+
+    const handleStatus = (event: MessageEvent<string>) => {
+      const payload = JSON.parse(event.data) as RecordingData
+      queryClient.setQueryData(recordingStatusQueryKey(flowId), payload)
+
+      if (payload.status === "completed" || payload.status === "failed") {
+        eventSource.close()
+      }
+    }
+
+    eventSource.addEventListener("status", handleStatus as EventListener)
+    eventSource.onerror = () => {
+      eventSource.close()
+      void queryClient.invalidateQueries({
+        queryKey: recordingStatusQueryKey(flowId),
+      })
+    }
+
+    return () => {
+      eventSource.removeEventListener("status", handleStatus as EventListener)
+      eventSource.close()
+    }
+  }, [flowId, query.data, queryClient])
+
+  return query
 }
 
 export function invalidateRecordingStatus(
@@ -58,6 +93,6 @@ export function invalidateRecordingStatus(
   flowId: string
 ) {
   void queryClient.invalidateQueries({
-    queryKey: ["recording-status", flowId],
+    queryKey: recordingStatusQueryKey(flowId),
   })
 }

@@ -7,10 +7,23 @@ const flowKeys = {
   detail: (id: string) => ["flows", id] as const,
 }
 
+function isFlowInProgress(flow: Pick<Flow, "status"> | undefined | null) {
+  return flow?.status === "pending" || flow?.status === "running"
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
-    const body = await res.text().catch(() => "Unknown error")
-    throw new Error(`API ${res.status}: ${body}`)
+    let message = `API ${res.status}`
+
+    try {
+      const body = (await res.json()) as { error?: string }
+      message = body.error ? body.error : `${message}: Request failed`
+    } catch {
+      const body = await res.text().catch(() => "Unknown error")
+      message = `${message}: ${body}`
+    }
+
+    throw new Error(message)
   }
   return res.json() as Promise<T>
 }
@@ -21,6 +34,10 @@ export function useFlows() {
     queryFn: async () => {
       const res = await client.flows.$get()
       return handleResponse<Flow[]>(res)
+    },
+    refetchInterval: (query) => {
+      const flows = query.state.data
+      return flows?.some((flow) => isFlowInProgress(flow)) ? 2000 : false
     },
   })
 }
@@ -35,6 +52,8 @@ export function useFlow(id: string) {
       return handleResponse<Flow>(res)
     },
     enabled: !!id,
+    refetchInterval: (query) =>
+      isFlowInProgress(query.state.data) ? 2000 : false,
   })
 }
 
@@ -93,6 +112,19 @@ export function useUpdateSettings() {
     mutationFn: async (data: { gitUrl: string }) => {
       const res = await client.settings.$put({ json: data })
       return handleResponse<{ gitUrl: string }>(res)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings"] })
+    },
+  })
+}
+
+export function useDeleteSettings() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const res = await client.settings.$delete()
+      return handleResponse<{ gitUrl: null }>(res)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["settings"] })
