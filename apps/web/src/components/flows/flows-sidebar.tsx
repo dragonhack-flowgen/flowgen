@@ -8,50 +8,8 @@ import { Label } from "@/components/ui/label"
 import { SidebarInput } from "@/components/ui/sidebar"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
-import { type Flow, type FlowStatus } from "@/types/flow"
-
-type SidebarFlow = Pick<Flow, "id" | "name" | "status"> & {
-  updatedAt: string
-  summary: string
-}
-
-const MOCK_FLOWS: SidebarFlow[] = [
-  {
-    id: "1",
-    name: "User Onboarding",
-    status: "complete",
-    updatedAt: "Today",
-    summary: "Guided onboarding from signup to first successful action.",
-  },
-  {
-    id: "2",
-    name: "Checkout Process",
-    status: "draft",
-    updatedAt: "Yesterday",
-    summary: "Covers cart review, payment details, and confirmation page.",
-  },
-  {
-    id: "3",
-    name: "Password Reset",
-    status: "generating",
-    updatedAt: "2 days ago",
-    summary: "Flow for forgot-password email, token validation, and reset.",
-  },
-  {
-    id: "4",
-    name: "Admin Dashboard Setup",
-    status: "pending_review",
-    updatedAt: "3 days ago",
-    summary: "Initial admin setup including roles, permissions, and defaults.",
-  },
-  {
-    id: "5",
-    name: "Profile Editing",
-    status: "recording",
-    updatedAt: "1 week ago",
-    summary: "User profile updates including image upload and preferences.",
-  },
-]
+import { MOCK_FLOWS } from "@/data/mock-flows"
+import { type FlowStatus } from "@/types/flow"
 
 function getStatusLabel(status: FlowStatus): string {
   return status
@@ -83,7 +41,7 @@ export function FlowsSidebar() {
       const matchesQuery =
         normalizedQuery.length === 0 ||
         flow.name.toLowerCase().includes(normalizedQuery) ||
-        flow.summary.toLowerCase().includes(normalizedQuery)
+        flow.description.toLowerCase().includes(normalizedQuery)
 
       const matchesProgressFilter =
         !showInProgressOnly ||
@@ -111,7 +69,7 @@ export function FlowsSidebar() {
       data-dragging={isDraggingRail}
       className="relative flex h-full w-(--flows-sidebar-width) shrink-0 flex-col border-r bg-sidebar transition-[width] duration-200 ease-linear data-[dragging=true]:duration-0"
     >
-      <div className="flex items-center justify-between border-b p-4">
+      <div className="flex h-14 items-center justify-between border-b px-4">
         <h2 className="text-base font-medium text-foreground">Your Flows</h2>
         <Label className="flex items-center gap-2 text-sm">
           <span>In progress</span>
@@ -151,7 +109,7 @@ export function FlowsSidebar() {
                     <FileTextIcon className="size-4 shrink-0" />
                     <span className="truncate font-medium">{flow.name}</span>
                     <span className="ml-auto text-xs text-muted-foreground">
-                      {flow.updatedAt}
+                      {new Date(flow.updated_at).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex w-full items-center gap-2">
@@ -160,7 +118,7 @@ export function FlowsSidebar() {
                     </Badge>
                   </div>
                   <span className="line-clamp-2 text-xs whitespace-break-spaces text-muted-foreground">
-                    {flow.summary}
+                    {flow.description}
                   </span>
                 </Link>
               </li>

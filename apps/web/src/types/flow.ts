@@ -9,12 +9,6 @@ export const FLOW_STATUSES = [
 
 export type FlowStatus = (typeof FLOW_STATUSES)[number]
 
-export type FlowStep = {
-  id: string
-  order: number
-  instruction: string
-}
-
 export type Flow = {
   id: string
   name: string
@@ -24,7 +18,7 @@ export type Flow = {
   start_conditions: string | null
   description: string
   status: FlowStatus
-  steps: FlowStep[]
+  steps_md: string | null
   video_url: string | null
   created_at: string
   updated_at: string

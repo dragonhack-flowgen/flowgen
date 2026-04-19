@@ -1,6 +1,12 @@
 import * as React from "react"
 import { Link, useRouter } from "@tanstack/react-router"
-import { ListIcon, MoonIcon, SunIcon } from "lucide-react"
+import {
+  ListIcon,
+  MoonIcon,
+  SunIcon,
+  CircleQuestionMarkIcon,
+  CogIcon,
+} from "lucide-react"
 
 import { useTheme } from "@/components/theme-provider"
 import { CreateFlowModal } from "@/components/flows/create-flow-modal"
@@ -17,9 +23,48 @@ import {
   SidebarMenuItem,
   SidebarProvider,
   SidebarRail,
+  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar"
 
-const navItems = [{ label: "Flows", icon: ListIcon, to: "/flows" as const }]
+const navItems = [
+  { label: "Flows", icon: ListIcon, to: "/flows" as const },
+  { label: "Help", icon: CircleQuestionMarkIcon, to: "/help" as const },
+  { label: "Settings", icon: CogIcon, to: "/settings" as const },
+]
+
+function SidebarHeaderContent() {
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
+
+  return (
+    <SidebarHeader>
+      {isCollapsed ? (
+        <>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarTrigger className="mx-auto" />
+            </SidebarMenuItem>
+          </SidebarMenu>
+          <CreateFlowModal />
+        </>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <Link to="/flows" className="flex items-center gap-2 px-2 py-1">
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                <span className="text-sm font-bold">FG</span>
+              </div>
+              <span className="truncate text-sm font-semibold">FlowGen</span>
+            </Link>
+            <SidebarTrigger />
+          </div>
+          <CreateFlowModal />
+        </>
+      )}
+    </SidebarHeader>
+  )
+}
 
 export function AppSidebar({
   children,
@@ -30,25 +75,7 @@ export function AppSidebar({
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                render={<Link to="/flows" />}
-              >
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <span className="text-sm font-bold">FG</span>
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">FlowGen</span>
-                </div>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-          <CreateFlowModal />
-        </SidebarHeader>
+        <SidebarHeaderContent />
 
         <SidebarContent>
           <SidebarGroup>

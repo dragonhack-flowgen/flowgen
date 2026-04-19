@@ -9,12 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
+import { Route as SettingsRouteImport } from "./routes/settings"
+import { Route as HelpRouteImport } from "./routes/help"
 import { Route as FlowsRouteImport } from "./routes/flows"
 import { Route as IndexRouteImport } from "./routes/index"
 import { Route as FlowsIndexRouteImport } from "./routes/flows/index"
 import { Route as FlowsFlowIdIndexRouteImport } from "./routes/flows/$flowId/index"
 import { Route as FlowsFlowIdEditRouteImport } from "./routes/flows/$flowId/edit"
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: "/settings",
+  path: "/settings",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HelpRoute = HelpRouteImport.update({
+  id: "/help",
+  path: "/help",
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FlowsRoute = FlowsRouteImport.update({
   id: "/flows",
   path: "/flows",
@@ -44,12 +56,16 @@ const FlowsFlowIdEditRoute = FlowsFlowIdEditRouteImport.update({
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/flows": typeof FlowsRouteWithChildren
+  "/help": typeof HelpRoute
+  "/settings": typeof SettingsRoute
   "/flows/": typeof FlowsIndexRoute
   "/flows/$flowId/edit": typeof FlowsFlowIdEditRoute
   "/flows/$flowId/": typeof FlowsFlowIdIndexRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
+  "/help": typeof HelpRoute
+  "/settings": typeof SettingsRoute
   "/flows": typeof FlowsIndexRoute
   "/flows/$flowId/edit": typeof FlowsFlowIdEditRoute
   "/flows/$flowId": typeof FlowsFlowIdIndexRoute
@@ -58,6 +74,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
   "/flows": typeof FlowsRouteWithChildren
+  "/help": typeof HelpRoute
+  "/settings": typeof SettingsRoute
   "/flows/": typeof FlowsIndexRoute
   "/flows/$flowId/edit": typeof FlowsFlowIdEditRoute
   "/flows/$flowId/": typeof FlowsFlowIdIndexRoute
@@ -67,15 +85,25 @@ export interface FileRouteTypes {
   fullPaths:
     | "/"
     | "/flows"
+    | "/help"
+    | "/settings"
     | "/flows/"
     | "/flows/$flowId/edit"
     | "/flows/$flowId/"
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/flows" | "/flows/$flowId/edit" | "/flows/$flowId"
+  to:
+    | "/"
+    | "/help"
+    | "/settings"
+    | "/flows"
+    | "/flows/$flowId/edit"
+    | "/flows/$flowId"
   id:
     | "__root__"
     | "/"
     | "/flows"
+    | "/help"
+    | "/settings"
     | "/flows/"
     | "/flows/$flowId/edit"
     | "/flows/$flowId/"
@@ -84,10 +112,26 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   FlowsRoute: typeof FlowsRouteWithChildren
+  HelpRoute: typeof HelpRoute
+  SettingsRoute: typeof SettingsRoute
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
+    "/settings": {
+      id: "/settings"
+      path: "/settings"
+      fullPath: "/settings"
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/help": {
+      id: "/help"
+      path: "/help"
+      fullPath: "/help"
+      preLoaderRoute: typeof HelpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     "/flows": {
       id: "/flows"
       path: "/flows"
@@ -143,6 +187,8 @@ const FlowsRouteWithChildren = FlowsRoute._addFileChildren(FlowsRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   FlowsRoute: FlowsRouteWithChildren,
+  HelpRoute: HelpRoute,
+  SettingsRoute: SettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
