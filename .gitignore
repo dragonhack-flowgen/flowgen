@@ -32,3 +32,5 @@ npm-debug.log*
 __pycache__
 
 task_records/
+conversations/
+step_traces/

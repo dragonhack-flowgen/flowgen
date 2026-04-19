@@ -1,5 +1,5 @@
 import * as React from "react"
-import { PencilIcon, PlayIcon, SaveIcon, XIcon } from "lucide-react"
+import { LoaderCircleIcon, PencilIcon, PlayIcon, SaveIcon, XIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
@@ -58,7 +58,11 @@ export function EditableSection({
                   onClick={onRun}
                   disabled={isRunning}
                 >
-                  <PlayIcon className="mr-1.5 size-3.5" />
+                  {isRunning ? (
+                    <LoaderCircleIcon className="mr-1.5 size-3.5 animate-spin" />
+                  ) : (
+                    <PlayIcon className="mr-1.5 size-3.5" />
+                  )}
                   {runLabel ?? "Run"}
                 </Button>
               )}

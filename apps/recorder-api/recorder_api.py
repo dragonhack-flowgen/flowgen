@@ -315,8 +315,8 @@ def consume_background_task_result(task: asyncio.Task[None]) -> None:
     try:
         task.result()
     except Exception:
-        # The job status is persisted separately, so swallowing the task exception
-        # here avoids noisy "Task exception was never retrieved" logs.
+        import logging
+        logging.getLogger("recorder").exception("Recording job failed")
         pass
 
 
@@ -851,10 +851,16 @@ async def run_recording(request: RecordingRunRequest) -> RecordingStartResponse:
                 status_code=409,
                 detail=f"Recording {task_id} is already running.",
             )
-        raise HTTPException(
-            status_code=409,
-            detail=f"Recording {task_id} already exists.",
-        )
+        old_paths = make_run_paths(task_id, create_dirs=False)
+        if old_paths.task_dir.exists():
+            import shutil
+            shutil.rmtree(old_paths.task_dir, ignore_errors=True)
+        if old_paths.conversations_dir.exists():
+            import shutil
+            shutil.rmtree(old_paths.conversations_dir, ignore_errors=True)
+        if old_paths.step_traces_dir.exists():
+            import shutil
+            shutil.rmtree(old_paths.step_traces_dir, ignore_errors=True)
 
     paths = make_run_paths(task_id)
     started_at = utc_now()

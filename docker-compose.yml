@@ -25,6 +25,8 @@ services:
       BROWSER_USE_TASK_RECORDS_DIR: /app/task_records
       BROWSER_USE_CONVERSATIONS_DIR: /app/conversations
       BROWSER_USE_STEP_TRACES_DIR: /app/step_traces
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8002:8002"
     volumes:
