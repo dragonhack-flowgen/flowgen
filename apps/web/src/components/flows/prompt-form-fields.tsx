@@ -84,13 +84,13 @@ export function PromptFormFields({
                 <PopoverContent
                   side="top"
                   align="start"
-                  className="w-80 max-w-sm gap-3 border border-primary bg-gradient-to-b from-primary/10 via-popover to-popover shadow-lg ring-1 ring-primary/20"
+                  className="w-80 max-w-sm gap-3 border border-primary bg-gradient-to-b from-primary/95 via-popover to-popover shadow-lg ring-1 ring-primary/20"
                 >
-                  <p className="w-fit rounded-full bg-primary/90 px-2 py-0.5 text-xs font-medium tracking-wide text-white">
+                  <p className="w-fit rounded-full bg-primary/99 px-2 py-0.5 text-xs font-medium tracking-wide text-white">
                     Description Coach
                   </p>
                   <PopoverHeader>
-                    <PopoverTitle>
+                    <PopoverTitle className="text-white">
                       How to give a good process description
                     </PopoverTitle>
                     <PopoverDescription>
