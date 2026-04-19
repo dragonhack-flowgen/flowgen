@@ -31,41 +31,76 @@ Set in `.env`:
 - `PROVIDER_ID` — LLM provider (default: `anthropic`)
 - `MODEL_ID` — Model ID (default: `claude-sonnet-4-20250514`)
 - `ANTHROPIC_API_KEY` — API key for Anthropic (or use `<PROVIDER>_API_KEY` pattern)
+- `DATABASE_URL` — PostgreSQL connection string
 - `PORT` — Server port (default: `8000`)
 
 ## API
 
 ### `GET /health`
 
-Health check.
+Health check. Returns `{ status: "ok" }`.
 
-### `POST /explore`
+### Settings
 
-Explore a codebase and generate a step-by-step user guide.
+#### `GET /settings`
 
-```json
-{
-  "git_url": "https://github.com/user/repo",
-  "flow": "How to mark a message as unread"
-}
-```
+Returns current settings.
 
 Response:
-
 ```json
-{
-  "success": true,
-  "guide": {
-    "title": "How to Mark a Message as Unread",
-    "steps": ["Step 1...", "Step 2...", "..."]
-  }
-}
+{ "gitUrl": "https://github.com/user/repo" }
+```
+
+#### `PUT /settings`
+
+Upsert settings.
+
+Body:
+```json
+{ "gitUrl": "https://github.com/user/repo" }
+```
+
+### Flows
+
+#### `POST /flows`
+
+Create a new flow and trigger async AI exploration.
+
+Body:
+```json
+{ "name": "My flow", "description": "How to mark a message as unread" }
+```
+
+Response (201):
+```json
+{ "id": "uuid", "status": "pending" }
+```
+
+#### `GET /flows`
+
+List all flows, ordered by creation date descending.
+
+#### `GET /flows/:id`
+
+Get a single flow by ID.
+
+#### `PUT /flows/:id`
+
+Update flow guide or user docs.
+
+Body:
+```json
+{ "guide": "...", "userDocs": "..." }
 ```
 
 ## Structure
 
-- `src/index.ts` — Hono app entrypoint, CORS, server startup
-- `src/routes/explore.ts` — POST /explore handler
+- `src/index.ts` — Server entrypoint, DB init, starts Hono server
+- `src/app.ts` — Hono app with CORS, health check, mounted sub-routers
+- `src/db/index.ts` — Database client (drizzle-orm + postgres.js)
+- `src/db/schema.ts` — Drizzle schema (flows, settings tables)
+- `src/routes/settings.ts` — GET/PUT /settings handlers + getSettings helper
+- `src/routes/flows.ts` — CRUD /flows handlers with async exploration
 - `src/services/explorer.ts` — Clone repo + run AI agent exploration
 - `src/services/structured-output.ts` — Custom submit_guide tool definition
 

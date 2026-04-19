@@ -47,27 +47,45 @@ async function cloneOrUpdateRepo(gitUrl: string): Promise<string> {
   return repoDir
 }
 
-const SYSTEM_PROMPT = `You are a codebase exploration agent. Your job is to explore a codebase's UI components, routes, and navigation to understand how a specific user flow works, then produce a step-by-step instruction guide for non-technical end users.
+const SYSTEM_PROMPT = `You are a codebase exploration agent. Your job is to explore a codebase's UI components, routes, and navigation to understand how a specific user flow works, then produce TWO separate step-by-step guides.
 
 Process:
 1. Start by understanding the project structure (read package.json, look at the src/ or app/ directory)
 2. Identify the routing setup and page components
 3. Find the specific UI components involved in the requested flow
 4. Trace the user-facing interactions from start to finish
-5. When you have a complete understanding, call submit_guide with a title and ordered steps
+5. When you have a complete understanding, call submit_guide with a title, guideSteps, and userDocSteps
+
+You MUST produce two separate guides:
+
+**guideSteps** — Browser automation agent guide:
+- A single, linear, deterministic sequence of steps with NO branching or conditionals (no "if", "depending on", "either", "or")
+- Specific steps with exact UI element labels, selectors, form field names, button text, and URLs
+- Include concrete values where applicable (e.g., "Click the 'Settings' gear icon in the top-right corner", "Enter the email in the input field with placeholder 'Email address'")
+- If multiple paths exist, pick the simplest one and commit to it — do not mention alternatives
+- Designed for a browser automation agent that will execute the actions mechanically
+
+**userDocSteps** — End-user documentation:
+- General steps that describe what to do conceptually without dictating exact values
+- Do NOT include specific UI element details or exact values (e.g., "Open your account settings", "Enter your email address")
+- Assume the user has no technical knowledge
+- Designed for non-technical human readers
 
 Rules:
-- Each step must reference UI elements by their visible labels or descriptions
-- Steps should be actionable and specific (e.g., "Click the 'Settings' gear icon in the top-right corner")
-- Assume the user has no technical knowledge
+- Both guides must cover the same flow from start to finish
 - If you cannot fully understand the flow, still submit your best effort with a note about uncertainty
 - If there are multiple ways to accomplish the requested flow, always choose the simplest and most straightforward option
 - You MUST call submit_guide exactly once before finishing`
 
+export interface ExplorationResult {
+  guide: string
+  userDocs: string
+}
+
 export async function runExploration(
   gitUrl: string,
   flow: string
-): Promise<Guide> {
+): Promise<ExplorationResult> {
   console.log(`[explorer] Fetching ${gitUrl}...`)
   const repoPath = await cloneOrUpdateRepo(gitUrl)
   console.log(`[explorer] Repo ready at ${repoPath}`)
@@ -75,7 +93,7 @@ export async function runExploration(
   return await executeAgent(repoPath, flow)
 }
 
-async function executeAgent(repoPath: string, flow: string): Promise<Guide> {
+async function executeAgent(repoPath: string, flow: string): Promise<ExplorationResult> {
   const providerId = process.env.PROVIDER_ID || "anthropic"
   const modelId = process.env.MODEL_ID || "claude-sonnet-4-20250514"
   console.log(`[explorer] Provider: ${providerId}, Model: ${modelId}`)
@@ -164,20 +182,10 @@ async function executeAgent(repoPath: string, flow: string): Promise<Guide> {
 
   session.subscribe((event) => {
     if (event.type === "tool_execution_start") {
-      console.log(`[explorer] Tool start: ${event.toolName}`)
-    }
-    if (event.type === "tool_execution_end") {
+      const e = event as { toolName: string; args: unknown }
       console.log(
-        `[explorer] Tool end: ${event.toolName}, error: ${event.isError}`
-      )
-    }
-    if (event.type === "turn_end") {
-      const e = event as unknown as {
-        turnIndex: number
-        toolResults: unknown[]
-      }
-      console.log(
-        `[explorer] Turn ${e.turnIndex} end, tools: ${e.toolResults.length}`
+        `[explorer] Tool start: ${e.toolName}`,
+        JSON.stringify(e.args, null, 2)
       )
     }
     if (event.type === "agent_end") {
@@ -214,7 +222,10 @@ async function executeAgent(repoPath: string, flow: string): Promise<Guide> {
 
   const guide = guideResult as Guide
   console.log(
-    `[explorer] Guide received: "${guide.title}" (${guide.steps.length} steps)`
+    `[explorer] Guide received: "${guide.title}" (guide: ${guide.guideSteps.length} steps, userDocs: ${guide.userDocSteps.length} steps)`
   )
-  return guide
+  return {
+    guide: guide.guideSteps.join("\n\n"),
+    userDocs: guide.userDocSteps.join("\n\n"),
+  }
 }
