@@ -2,8 +2,6 @@ import * as React from "react"
 import { Link, useRouter } from "@tanstack/react-router"
 import { ListIcon, MoonIcon, SunIcon } from "lucide-react"
 
-import { AppHeader } from "@/components/layout/app-header"
-
 import { useTheme } from "@/components/theme-provider"
 import { CreateFlowModal } from "@/components/flows/create-flow-modal"
 import {
@@ -92,10 +90,7 @@ export function AppSidebar({
         <SidebarRail />
       </Sidebar>
 
-      <SidebarInset>
-        <AppHeader />
-        {children}
-      </SidebarInset>
+      <SidebarInset>{children}</SidebarInset>
     </SidebarProvider>
   )
 }

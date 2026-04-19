@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog"
 
 import { PlusIcon } from "lucide-react"
+import { SidebarMenuButton } from "../ui/sidebar"
 
 const formSchema = z.object({
   name: z
@@ -68,10 +69,14 @@ export function CreateFlowModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button>
-        <PlusIcon />
-        Create New Flow
-      </Button>} />
+      <DialogTrigger
+        render={
+          <SidebarMenuButton variant="variant">
+            <PlusIcon />
+            Create New Flow
+          </SidebarMenuButton>
+        }
+      />
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New Flow</DialogTitle>
@@ -126,8 +131,12 @@ export function CreateFlowModal() {
                 </Field>
               )}
             />
-            <Field orientation="horizontal" className="justify-end mt-4">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Field orientation="horizontal" className="mt-4 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
                 Cancel
               </Button>
               <Button type="submit">Create Flow</Button>

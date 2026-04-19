@@ -18,7 +18,7 @@ function RootComponent() {
         Skip to main content
       </a>
       <AppSidebar>
-        <div id="main" className="flex-1 overflow-auto p-6" tabIndex={-1}>
+        <div id="main" className="flex-1 overflow-auto" tabIndex={-1}>
           <Outlet />
         </div>
       </AppSidebar>
