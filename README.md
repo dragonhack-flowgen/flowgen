@@ -6,7 +6,7 @@
 
 FlowGen explores your codebase, generates step-by-step user guides, and records walkthrough videos — all automatically. Point it at a repo and let it create living documentation that stays in sync with your code.
 
-[**Demo Video**](https://2gh7j1pp3f.ufs.sh/f/A4lD3Jp5dtPTlMfYOgjyjkgsMPWw72xoDGEhmd3iX1KHVICep) · [**Report Bug**](https://github.com/dragonhack-flowgen/flowgen/issues)
+[**Report Bug**](https://github.com/dragonhack-flowgen/flowgen/issues)
 
 ---
 
@@ -114,7 +114,11 @@ This single command (powered by Turborepo) will:
 
 ### 4. Open the app
 
-Navigate to **[http://localhost:5173](http://localhost:5173)** — you're ready to go.
+Navigate to **[http://localhost:5173](http://localhost:5173)**.
+
+### 5. Connect your codebase
+
+Go to **Settings** in the sidebar and paste the URL of the Git repository you want to generate documentation for. Once saved, FlowGen's agent will have access to your codebase and can start discovering flows automatically.
 
 <br />
 
