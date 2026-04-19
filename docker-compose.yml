@@ -11,5 +11,30 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  recorder-api:
+    build:
+      context: .
+      dockerfile: apps/recorder-api/Dockerfile
+    container_name: flowgen-recorder-api
+    env_file:
+      - .env
+    environment:
+      PORT: 8002
+      BACKEND_INTERNAL_URL: http://host.docker.internal:8001
+      BROWSER_USE_TASK_RECORDS_DIR: /app/apps/backend/task_records
+      BROWSER_USE_CONVERSATIONS_DIR: /app/apps/backend/conversations
+      BROWSER_USE_STEP_TRACES_DIR: /app/apps/backend/step_traces
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./recorder.py:/app/recorder.py
+      - ./apps/backend/task_records:/app/apps/backend/task_records
+      - ./apps/backend/conversations:/app/apps/backend/conversations
+      - ./apps/backend/step_traces:/app/apps/backend/step_traces
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - postgres
+
 volumes:
   pgdata:

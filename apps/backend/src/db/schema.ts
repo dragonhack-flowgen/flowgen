@@ -2,10 +2,16 @@ import {
   pgTable,
   text,
   timestamp,
+  jsonb,
   integer,
   uuid,
   pgEnum,
 } from "drizzle-orm/pg-core"
+import {
+  RECORDING_STATUSES,
+  type RecordingArtifacts,
+  type RecordingManifest,
+} from "../types/recordings.js"
 
 export const flowStatusEnum = pgEnum("flow_status", [
   "pending",
@@ -13,6 +19,11 @@ export const flowStatusEnum = pgEnum("flow_status", [
   "completed",
   "failed",
 ])
+
+export const recordingStatusEnum = pgEnum(
+  "recording_status",
+  RECORDING_STATUSES
+)
 
 export const settings = pgTable("settings", {
   id: integer().primaryKey().default(1),
@@ -32,7 +43,22 @@ export const flows = pgTable("flows", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
+export const recordings = pgTable("recordings", {
+  id: uuid().defaultRandom().primaryKey(),
+  task: text().notNull(),
+  providerTaskId: text("provider_task_id"),
+  status: recordingStatusEnum().notNull().default("pending"),
+  artifacts: jsonb("artifacts").$type<RecordingArtifacts>(),
+  manifest: jsonb("manifest").$type<RecordingManifest>(),
+  error: text(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
 export type Flow = typeof flows.$inferSelect
 export type NewFlow = typeof flows.$inferInsert
 export type Settings = typeof settings.$inferSelect
 export type FlowStatus = (typeof flowStatusEnum.enumValues)[number]
+export type Recording = typeof recordings.$inferSelect
+export type NewRecording = typeof recordings.$inferInsert
+export type RecordingStatus = (typeof recordingStatusEnum.enumValues)[number]
