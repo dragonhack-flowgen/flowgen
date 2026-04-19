@@ -27,7 +27,7 @@ services:
     ports:
       - "8002:8002"
     volumes:
-      - ./recorder.py:/app/recorder.py
+      - ./apps/recorder-api/recorder_api.py:/app/recorder_api.py
       - ./apps/backend/task_records:/app/apps/backend/task_records
       - ./apps/backend/conversations:/app/apps/backend/conversations
       - ./apps/backend/step_traces:/app/apps/backend/step_traces

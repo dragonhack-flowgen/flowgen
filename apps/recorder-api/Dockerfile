@@ -13,8 +13,8 @@ COPY apps/recorder-api/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt \
     && python -m playwright install --with-deps chromium
 
-COPY recorder.py /app/recorder.py
+COPY apps/recorder-api/recorder_api.py /app/recorder_api.py
 
 EXPOSE 8002
 
-CMD ["uvicorn", "recorder:app", "--host", "0.0.0.0", "--port", "8002"]
+CMD ["uvicorn", "recorder_api:app", "--host", "0.0.0.0", "--port", "8002"]
