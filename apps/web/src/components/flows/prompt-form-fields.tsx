@@ -35,8 +35,6 @@ type PromptFormFieldsProps = Readonly<{
   descriptionPlaceholder?: string
 }>
 
-export type { PromptFormValues }
-
 export function PromptFormFields({
   control,
   namePlaceholder = "Flow name",

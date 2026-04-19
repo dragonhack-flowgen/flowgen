@@ -18,7 +18,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 import { PlusIcon } from "lucide-react"
 import { SidebarMenuButton } from "../ui/sidebar"
-import { useCreateFlow, useSettings } from "@/hooks/use-flows"
+import { useCreateFlow } from "@/hooks/use-flows"
+import { useSettings } from "@/hooks/use-settings"
 import { PromptFormFields } from "./prompt-form-fields"
 
 const formSchema = z.object({
@@ -56,7 +57,9 @@ export function CreateFlowModal() {
       const result = await createFlow.mutateAsync(data)
       toast.success("Flow Created")
       setOpen(false)
-      navigate({ to: "/flows", search: { flowId: result.id } })
+      if ("id" in result) {
+        navigate({ to: "/flows", search: { flowId: result.id } })
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create flow")
     }
