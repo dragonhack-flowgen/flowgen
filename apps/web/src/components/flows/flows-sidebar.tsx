@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { SidebarInput } from "@/components/ui/sidebar"
 import { Switch } from "@/components/ui/switch"
 import { Spinner } from "@/components/ui/spinner"
+import { API_BASE_URL } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { type FlowStatus } from "@/types/flow"
 
@@ -46,9 +47,7 @@ export function FlowsSidebar() {
   async function handleDiscover() {
     setIsDiscovering(true)
     try {
-      const apiBaseUrl =
-        import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
-      const res = await fetch(`${apiBaseUrl}/flows/discover`, {
+      const res = await fetch(`${API_BASE_URL}/flows/discover`, {
         method: "POST",
       })
       if (!res.ok) {

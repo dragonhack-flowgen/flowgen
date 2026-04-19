@@ -43,6 +43,16 @@ export const recordingsRoute = new Hono()
     const taskId = formData.get("taskId")
     const task = formData.get("task")
     const file = formData.get("file")
+    const manifestInput = formData.get("manifest")
+    let manifest: unknown = null
+
+    if (typeof manifestInput === "string" && manifestInput.trim()) {
+      try {
+        manifest = JSON.parse(manifestInput)
+      } catch {
+        return c.json({ error: "manifest must be valid JSON" } as const, 400)
+      }
+    }
 
     if (typeof taskId !== "string" || !taskId.trim()) {
       return c.json({ error: "taskId is required" } as const, 400)
@@ -70,6 +80,7 @@ export const recordingsRoute = new Hono()
             task: typeof task === "string" ? task : existing.task,
             status: "failed",
             error: message,
+            manifest,
             updatedAt: new Date(),
           })
           .where(eq(recordings.id, existing.id))
@@ -80,7 +91,7 @@ export const recordingsRoute = new Hono()
           status: "failed",
           error: message,
           artifacts: null,
-          manifest: null,
+          manifest,
           updatedAt: new Date(),
         })
       }
@@ -108,6 +119,7 @@ export const recordingsRoute = new Hono()
           task: typeof task === "string" ? task : existing.task,
           status: "completed",
           artifacts,
+          manifest,
           error: null,
           updatedAt: new Date(),
         })
@@ -118,7 +130,7 @@ export const recordingsRoute = new Hono()
         providerTaskId: taskId.trim(),
         status: "completed",
         artifacts,
-        manifest: null,
+        manifest,
         error: null,
         updatedAt: new Date(),
       })

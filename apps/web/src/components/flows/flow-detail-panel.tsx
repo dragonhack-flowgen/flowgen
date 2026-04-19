@@ -26,6 +26,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { type Flow, type FlowStatus } from "@/types/flow"
 import { useSettings, useUpdateFlow } from "@/hooks/use-flows"
+import { API_BASE_URL, RECORDER_API_URL } from "@/lib/api"
 import {
   invalidateRecordingStatus,
   useRecordingStatus,
@@ -85,9 +86,6 @@ type FlowDetailPanelProps = Readonly<{
   flow: Flow
 }>
 
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
-
 async function approveFlow(flowId: string) {
   const res = await fetch(`${API_BASE_URL}/flows/${flowId}/approve`, {
     method: "POST",
@@ -135,9 +133,7 @@ async function flagFlow(flowId: string, reason?: string) {
 }
 
 async function postToRecorder(flowId: string, task: string, startUrl?: string | null) {
-  const recorderUrl =
-    import.meta.env.VITE_RECORDER_API_URL ?? "http://localhost:8000"
-  const res = await fetch(`${recorderUrl}/recordings/run`, {
+  const res = await fetch(`${RECORDER_API_URL}/recordings/run`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ task, taskId: flowId, startUrl: startUrl || undefined }),

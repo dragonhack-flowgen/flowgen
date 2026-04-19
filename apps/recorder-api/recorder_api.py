@@ -3,12 +3,14 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import shutil
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from mimetypes import guess_type
 from pathlib import Path
 from typing import Any, Callable, Literal
+from urllib.parse import urlparse, urlunparse
 from uuid import uuid4
 
 import requests
@@ -568,10 +570,31 @@ def get_uploadthing_acl() -> str | None:
     return normalized
 
 
+def normalize_start_url_for_runtime(start_url: str | None) -> str | None:
+    if not start_url:
+        return None
+
+    try:
+        parsed = urlparse(start_url)
+    except ValueError:
+        return start_url
+
+    if parsed.hostname not in {"localhost", "127.0.0.1", "::1"}:
+        return start_url
+
+    mapped_host = env_str("HOST_DOCKER_INTERNAL_NAME", "host.docker.internal")
+    netloc = mapped_host
+    if parsed.port is not None:
+        netloc = f"{mapped_host}:{parsed.port}"
+
+    return urlunparse(parsed._replace(netloc=netloc))
+
+
 def upload_video_to_uploadthing(
     video_path: Path,
     task_id: str,
     task: str,
+    manifest: RecordingManifestModel | None = None,
 ) -> RecordingArtifactsModel:
     backend_url = env_str("BACKEND_INTERNAL_URL", "http://host.docker.internal:8001")
     internal_secret = env_str("INTERNAL_API_SECRET", "flowgen-internal-dev-secret")
@@ -581,7 +604,15 @@ def upload_video_to_uploadthing(
         response = requests.post(
             endpoint,
             headers={"x-internal-api-secret": internal_secret},
-            data={"taskId": task_id, "task": task},
+            data={
+                "taskId": task_id,
+                "task": task,
+                "manifest": (
+                    json.dumps(manifest.model_dump(mode="json", by_alias=True))
+                    if manifest is not None
+                    else ""
+                ),
+            },
             files={
                 "file": (
                     video_path.name,
@@ -616,7 +647,10 @@ def upload_video_to_uploadthing(
 
 
 def build_artifacts(
-    raw_video_path: Path | None, task_id: str, task: str
+    raw_video_path: Path | None,
+    task_id: str,
+    task: str,
+    manifest: RecordingManifestModel | None = None,
 ) -> RecordingArtifactsModel:
     if raw_video_path is None:
         return RecordingArtifactsModel(
@@ -629,7 +663,7 @@ def build_artifacts(
         )
 
     if get_storage_mode() == "uploadthing":
-        return upload_video_to_uploadthing(raw_video_path, task_id, task)
+        return upload_video_to_uploadthing(raw_video_path, task_id, task, manifest)
 
     return RecordingArtifactsModel(
         provider=None,
@@ -682,8 +716,10 @@ async def run_task(
     started_at = utc_now()
     previous_videos = set(paths.raw_dir.glob("*.mp4"))
 
-    if start_url:
-        normalized_task = f"Navigate to {start_url}\n\nThen:\n{normalized_task}"
+    normalized_start_url = normalize_start_url_for_runtime(start_url)
+
+    if normalized_start_url:
+        normalized_task = f"Navigate to {normalized_start_url}\n\nThen:\n{normalized_task}"
 
     agent = Agent(
         task=normalized_task,
@@ -712,7 +748,9 @@ async def run_task(
         encoding="utf-8",
     )
 
-    artifacts = build_artifacts(raw_video_path, effective_task_id, normalized_task)
+    artifacts = build_artifacts(
+        raw_video_path, effective_task_id, normalized_task, manifest
+    )
 
     return RecordingRunResponse(
         providerTaskId=effective_task_id,
@@ -763,8 +801,12 @@ async def run_recording_job(
     if not normalized_task:
         raise ValueError("task is required.")
 
-    if start_url:
-        normalized_task = f"Navigate to {start_url}\n\nThen:\n{normalized_task}"
+    normalized_start_url = normalize_start_url_for_runtime(start_url)
+
+    if normalized_start_url:
+        normalized_task = (
+            f"Navigate to {normalized_start_url}\n\nThen:\n{normalized_task}"
+        )
 
     collector = StepCollector(paths.step_traces_dir, on_step=on_step)
     profile = build_browser_profile(paths.raw_dir)
@@ -797,7 +839,7 @@ async def run_recording_job(
         )
         write_json(paths.manifest_path, manifest.model_dump(mode="json", by_alias=True))
 
-        artifacts = build_artifacts(raw_video_path, task_id, normalized_task)
+        artifacts = build_artifacts(raw_video_path, task_id, normalized_task, manifest)
         final_status: RecordingState = "completed" if artifacts.error is None else "failed"
         persist_status(
             paths,
@@ -816,6 +858,13 @@ async def run_recording_job(
             history_path=paths.history_path if paths.history_path.exists() else None,
             raw_video_path=raw_video_path,
         )
+        if final_status == "completed" and artifacts.upload_url:
+            if paths.task_dir.exists():
+                shutil.rmtree(paths.task_dir, ignore_errors=True)
+            if paths.conversations_dir.exists():
+                shutil.rmtree(paths.conversations_dir, ignore_errors=True)
+            if paths.step_traces_dir.exists():
+                shutil.rmtree(paths.step_traces_dir, ignore_errors=True)
     except Exception as exc:
         persist_status(
             paths,

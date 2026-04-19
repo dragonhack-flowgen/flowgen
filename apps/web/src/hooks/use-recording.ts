@@ -1,8 +1,6 @@
 import * as React from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-
-const RECORDER_API_URL =
-  import.meta.env.VITE_RECORDER_API_URL ?? "http://localhost:8002"
+import { API_BASE_URL, RECORDER_API_URL } from "@/lib/api"
 
 export type RecordingStatus =
   | "queued"
@@ -29,6 +27,52 @@ export type RecordingData = {
   manifest: unknown
 }
 
+type BackendRecordingRow = {
+  id: string
+  task: string
+  providerTaskId: string | null
+  status: "pending" | "running" | "completed" | "failed"
+  artifacts: RecordingArtifacts
+  manifest: {
+    stepCount?: number
+  } | null
+  error: string | null
+}
+
+function mapBackendStatus(status: BackendRecordingRow["status"]): RecordingStatus {
+  if (status === "pending") return "queued"
+  return status
+}
+
+function mapBackendRecording(row: BackendRecordingRow): RecordingData {
+  const stepCount = row.manifest?.stepCount ?? 0
+
+  return {
+    taskId: row.providerTaskId ?? row.id,
+    status: mapBackendStatus(row.status),
+    currentStepNumber: stepCount,
+    stepCount,
+    currentUrl: null,
+    currentTitle: null,
+    error: row.error,
+    isActive: row.status === "pending" || row.status === "running",
+    artifacts: row.artifacts,
+    manifest: row.manifest,
+  }
+}
+
+async function fetchBackendRecording(flowId: string): Promise<RecordingData | null> {
+  const res = await fetch(`${API_BASE_URL}/recordings/${flowId}`)
+  if (!res.ok) {
+    if (res.status === 404) return null
+    const body = await res.text().catch(() => "Unknown error")
+    throw new Error(`API ${res.status}: ${body}`)
+  }
+
+  const row = (await res.json()) as BackendRecordingRow
+  return mapBackendRecording(row)
+}
+
 const recordingStatusQueryKey = (flowId: string | undefined) => [
   "recording-status",
   flowId,
@@ -40,15 +84,22 @@ export function useRecordingStatus(flowId: string | undefined) {
   const query = useQuery<RecordingData | null>({
     queryKey: recordingStatusQueryKey(flowId),
     queryFn: async () => {
-      const res = await fetch(
-        `${RECORDER_API_URL}/recordings/${flowId}`
-      )
+      const res = await fetch(`${RECORDER_API_URL}/recordings/${flowId}`)
       if (!res.ok) {
-        if (res.status === 404) return null
+        if (res.status === 404) return fetchBackendRecording(flowId!)
         const body = await res.text().catch(() => "Unknown error")
         throw new Error(`Recorder ${res.status}: ${body}`)
       }
-      return res.json()
+      const recorderData = (await res.json()) as RecordingData
+
+      if (
+        recorderData.status === "completed" &&
+        !recorderData.artifacts?.uploadUrl
+      ) {
+        return (await fetchBackendRecording(flowId!)) ?? recorderData
+      }
+
+      return recorderData
     },
     enabled: !!flowId,
     refetchInterval: (query) => {
