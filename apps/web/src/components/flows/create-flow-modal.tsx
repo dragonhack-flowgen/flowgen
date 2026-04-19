@@ -1,22 +1,10 @@
 import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Controller, useForm } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupText,
-  InputGroupTextarea,
-} from "@/components/ui/input-group"
+import { Field } from "@/components/ui/field"
 import { useNavigate } from "@tanstack/react-router"
 import {
   Dialog,
@@ -29,6 +17,8 @@ import {
 
 import { PlusIcon } from "lucide-react"
 import { SidebarMenuButton } from "../ui/sidebar"
+import { useCreateFlow } from "@/hooks/use-flows"
+import { PromptFormFields } from "./prompt-form-fields"
 
 const formSchema = z.object({
   name: z
@@ -44,6 +34,7 @@ const formSchema = z.object({
 export function CreateFlowModal() {
   const [open, setOpen] = React.useState(false)
   const navigate = useNavigate()
+  const createFlow = useCreateFlow()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,11 +44,15 @@ export function CreateFlowModal() {
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
-    toast.success("Flow Created", data)
-
-    setOpen(false)
-    navigate({ to: "/flows", search: { flowId: "123" } })
+  async function onSubmit(data: z.infer<typeof formSchema>) {
+    try {
+      const result = await createFlow.mutateAsync(data)
+      toast.success("Flow Created")
+      setOpen(false)
+      navigate({ to: "/flows", search: { flowId: result.id } })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to create flow")
+    }
   }
 
   // Reset form when modal opens
@@ -86,62 +81,21 @@ export function CreateFlowModal() {
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-4">
-          <FieldGroup>
-            <Controller
-              name="name"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>Flow Name</FieldLabel>
-                  <Input
-                    {...field}
-                    aria-invalid={fieldState.invalid}
-                    placeholder="Admin User Creation Flow"
-                    autoComplete="off"
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name="description"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>Description</FieldLabel>
-                  <InputGroup>
-                    <InputGroupTextarea
-                      {...field}
-                      placeholder="How to add new user to our organization as an admin?"
-                      rows={4}
-                      className="min-h-24 resize-none"
-                      aria-invalid={fieldState.invalid}
-                    />
-                    <InputGroupAddon align="block-end">
-                      <InputGroupText className="tabular-nums">
-                        {field.value.length}/500 characters
-                      </InputGroupText>
-                    </InputGroupAddon>
-                  </InputGroup>
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Field orientation="horizontal" className="mt-4 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">Create Flow</Button>
-            </Field>
-          </FieldGroup>
+          <PromptFormFields
+            control={form.control}
+            namePlaceholder="Admin User Creation Flow"
+            descriptionPlaceholder="How to add new user to our organization as an admin?"
+          />
+          <Field orientation="horizontal" className="mt-4 justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit">Create Flow</Button>
+          </Field>
         </form>
       </DialogContent>
     </Dialog>
