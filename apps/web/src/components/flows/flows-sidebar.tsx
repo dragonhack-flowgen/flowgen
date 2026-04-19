@@ -10,23 +10,7 @@ import { SidebarInput } from "@/components/ui/sidebar"
 import { Switch } from "@/components/ui/switch"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
-import { type FlowStatus } from "@/types/flow"
-
-function getStatusLabel(status: FlowStatus): string {
-  return status
-    .split("_")
-    .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(" ")
-}
-
-function getStatusVariant(
-  status: FlowStatus
-): "default" | "secondary" | "outline" | "destructive" {
-  if (status === "completed") return "default"
-  if (status === "failed") return "destructive"
-  if (status === "pending") return "outline"
-  return "secondary"
-}
+import { getStatusLabel, getStatusVariant } from "@/types/flow"
 
 export function FlowsSidebar() {
   const { flowId } = useSearch({ from: "/flows/" })

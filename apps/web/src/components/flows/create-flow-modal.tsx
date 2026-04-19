@@ -2,7 +2,6 @@ import * as React from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
-import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Field } from "@/components/ui/field"
 import { useNavigate } from "@tanstack/react-router"
@@ -18,33 +17,23 @@ import {
 import { PlusIcon } from "lucide-react"
 import { SidebarMenuButton } from "../ui/sidebar"
 import { useCreateFlow } from "@/hooks/use-flows"
+import { promptSchema, type PromptFormData } from "@/types/flow"
 import { PromptFormFields } from "./prompt-form-fields"
-
-const formSchema = z.object({
-  name: z
-    .string()
-    .min(4, "Flow name must be at least 4 characters.")
-    .max(24, "Flow name must be at most 24 characters."),
-  description: z
-    .string()
-    .min(12, "Description must be at least 12 characters.")
-    .max(500, "Description must be at most 500 characters."),
-})
 
 export function CreateFlowModal() {
   const [open, setOpen] = React.useState(false)
   const navigate = useNavigate()
   const createFlow = useCreateFlow()
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const form = useForm<PromptFormData>({
+    resolver: zodResolver(promptSchema),
     defaultValues: {
       name: "",
       description: "",
     },
   })
 
-  async function onSubmit(data: z.infer<typeof formSchema>) {
+  async function onSubmit(data: PromptFormData) {
     try {
       const result = await createFlow.mutateAsync(data)
       toast.success("Flow Created")

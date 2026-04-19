@@ -9,8 +9,6 @@ import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
-import * as z from "zod"
-
 import { Badge } from "@/components/ui/badge"
 import {
   InputGroup,
@@ -19,7 +17,13 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group"
 import { Separator } from "@/components/ui/separator"
-import { type Flow, type FlowStatus } from "@/types/flow"
+import {
+  type Flow,
+  getStatusLabel,
+  getStatusVariant,
+  promptSchema,
+  type PromptFormData,
+} from "@/types/flow"
 import { useUpdateFlow } from "@/hooks/use-flows"
 import {
   invalidateRecordingStatus,
@@ -27,33 +31,7 @@ import {
 } from "@/hooks/use-recording"
 import { EditableSection } from "./editable-section"
 import { PromptFormFields } from "./prompt-form-fields"
-
-function getStatusLabel(status: FlowStatus): string {
-  return status
-    .split("_")
-    .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(" ")
-}
-
-function getStatusVariant(
-  status: FlowStatus
-): "default" | "secondary" | "outline" | "destructive" {
-  if (status === "completed") return "default"
-  if (status === "failed") return "destructive"
-  if (status === "pending") return "outline"
-  return "secondary"
-}
-
-const promptSchema = z.object({
-  name: z
-    .string()
-    .min(4, "Flow name must be at least 4 characters.")
-    .max(24, "Flow name must be at most 24 characters."),
-  description: z
-    .string()
-    .min(12, "Description must be at least 12 characters.")
-    .max(500, "Description must be at most 500 characters."),
-})
+import { z } from "zod"
 
 const guideSchema = z.object({
   guide: z
@@ -62,7 +40,6 @@ const guideSchema = z.object({
     .max(5000, "Guide must be at most 5000 characters."),
 })
 
-type PromptFormData = z.infer<typeof promptSchema>
 type GuideFormData = z.infer<typeof guideSchema>
 
 type FlowDetailPanelProps = Readonly<{
@@ -70,7 +47,7 @@ type FlowDetailPanelProps = Readonly<{
 }>
 
 const RECORDER_API_URL =
-  import.meta.env.VITE_RECORDER_API_URL ?? "http://localhost:8000"
+  import.meta.env.VITE_RECORDER_API_URL ?? "http://localhost:8002"
 
 async function postToRecorder(flowId: string, task: string) {
   const res = await fetch(`${RECORDER_API_URL}/recordings/run`, {
@@ -151,6 +128,7 @@ function GuideSection({ flow }: Readonly<{ flow: Flow }>) {
       guide: flow.guide ?? "",
     },
   })
+  const updateFlow = useUpdateFlow()
 
   React.useEffect(() => {
     form.reset({ guide: flow.guide ?? "" })
@@ -163,9 +141,7 @@ function GuideSection({ flow }: Readonly<{ flow: Flow }>) {
       toast.success("Guide updated")
       setIsEditing(false)
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update guide"
-      )
+      toast.error(err instanceof Error ? err.message : "Failed to update guide")
     }
   }
 
