@@ -7,7 +7,7 @@ TypeScript backend using Hono on Node.js with the pi-coding-agent SDK for AI-pow
 Run from this directory (`apps/backend/`) or via Turborepo from repo root.
 
 ```bash
-pnpm dev          # Dev server with hot reload (port 8000)
+pnpm dev          # Dev server with hot reload (port 8001)
 pnpm build        # TypeScript build
 pnpm lint         # ESLint
 pnpm format       # Prettier
@@ -32,7 +32,7 @@ Set in `.env`:
 - `MODEL_ID` — Model ID (default: `claude-sonnet-4-20250514`)
 - `ANTHROPIC_API_KEY` — API key for Anthropic (or use `<PROVIDER>_API_KEY` pattern)
 - `DATABASE_URL` — PostgreSQL connection string
-- `PORT` — Server port (default: `8000`)
+- `PORT` — Server port (default: `8001`)
 
 ## API
 

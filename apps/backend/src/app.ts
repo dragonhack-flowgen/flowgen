@@ -1,6 +1,7 @@
 import { cors } from "hono/cors"
 import { Hono } from "hono"
 import { flowsRoute } from "./routes/flows.js"
+import { recordingsRoute } from "./routes/recordings.js"
 import { settingsRoute } from "./routes/settings.js"
 
 const app = new Hono()
@@ -15,6 +16,7 @@ const app = new Hono()
   })
   .get("/health", (c) => c.json({ status: "ok" }))
   .route("/settings", settingsRoute)
+  .route("/recordings", recordingsRoute)
   .route("/flows", flowsRoute)
 
 export type AppType = typeof app
