@@ -194,8 +194,9 @@ function PromptSection({ flow }: Readonly<{ flow: Flow }>) {
 function GuideSection({ flow }: Readonly<{ flow: Flow }>) {
   const [isEditing, setIsEditing] = React.useState(false)
   const queryClient = useQueryClient()
-  const { data: recording } = useRecordingStatus(flow.id)
   const updateFlow = useUpdateFlow()
+  const { data: recording } = useRecordingStatus(flow.id)
+  const previousRecordingStatus = React.useRef<string | null>(null)
 
   const isRecordingActive =
     recording?.status === "queued" || recording?.status === "running"
@@ -212,15 +213,39 @@ function GuideSection({ flow }: Readonly<{ flow: Flow }>) {
     setIsEditing(false)
   }, [flow.id, flow.guide, form])
 
+  React.useEffect(() => {
+    const nextStatus = recording?.status ?? null
+    const prevStatus = previousRecordingStatus.current
+
+    if (
+      prevStatus &&
+      prevStatus !== nextStatus &&
+      (prevStatus === "queued" || prevStatus === "running")
+    ) {
+      if (nextStatus === "completed") {
+        toast.success("Recording completed", {
+          description: "The walkthrough video is ready.",
+        })
+      }
+
+      if (nextStatus === "failed") {
+        toast.error("Recording failed", {
+          description:
+            recording?.error || "The recorder stopped before finishing.",
+        })
+      }
+    }
+
+    previousRecordingStatus.current = nextStatus
+  }, [recording])
+
   async function onSave(data: GuideFormData) {
     try {
       await updateFlow.mutateAsync({ id: flow.id, guide: data.guide })
       toast.success("Guide updated")
       setIsEditing(false)
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to update guide"
-      )
+      toast.error(err instanceof Error ? err.message : "Failed to update guide")
     }
   }
 
