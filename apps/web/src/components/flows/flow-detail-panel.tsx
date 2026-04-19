@@ -1,12 +1,11 @@
 import * as React from "react"
-import { LoaderCircleIcon, RefreshCwIcon, VideoIcon } from "lucide-react"
+import { LoaderCircleIcon } from "lucide-react"
 import { Controller, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { toast } from "sonner"
 import * as z from "zod"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import {
   InputGroup,
   InputGroupAddon,
@@ -14,7 +13,9 @@ import {
   InputGroupTextarea,
 } from "@/components/ui/input-group"
 import { Separator } from "@/components/ui/separator"
+import { Spinner } from "@/components/ui/spinner"
 import { type Flow, type FlowStatus } from "@/types/flow"
+import { useUpdateFlow } from "@/hooks/use-flows"
 import { EditableSection } from "./editable-section"
 import { PromptFormFields } from "./prompt-form-fields"
 
@@ -28,9 +29,9 @@ function getStatusLabel(status: FlowStatus): string {
 function getStatusVariant(
   status: FlowStatus
 ): "default" | "secondary" | "outline" | "destructive" {
-  if (status === "complete") return "default"
+  if (status === "completed") return "default"
   if (status === "failed") return "destructive"
-  if (status === "draft") return "outline"
+  if (status === "pending") return "outline"
   return "secondary"
 }
 
@@ -45,62 +46,39 @@ const promptSchema = z.object({
     .max(500, "Description must be at most 500 characters."),
 })
 
-const stepsSchema = z.object({
-  steps_md: z
+const guideSchema = z.object({
+  guide: z
     .string()
-    .min(1, "Steps cannot be empty.")
-    .max(5000, "Steps must be at most 5000 characters."),
+    .min(1, "Guide cannot be empty.")
+    .max(5000, "Guide must be at most 5000 characters."),
 })
 
 type PromptFormData = z.infer<typeof promptSchema>
-type StepsFormData = z.infer<typeof stepsSchema>
+type GuideFormData = z.infer<typeof guideSchema>
 
 type FlowDetailPanelProps = Readonly<{
   flow: Flow
 }>
 
-type FlowVideoProps = Readonly<{
-  videoUrl: string | null
-  isProcessing: boolean
-}>
+const RECORDER_API_URL =
+  import.meta.env.VITE_RECORDER_API_URL ?? "http://localhost:8000"
 
-function FlowVideo({ videoUrl, isProcessing }: FlowVideoProps) {
-  if (videoUrl) {
-    return (
-      <div className="overflow-hidden rounded-lg border">
-        <video src={videoUrl} controls className="w-full" preload="metadata">
-          <track kind="captions" />
-        </video>
-      </div>
-    )
+async function postToRecorder(flowId: string, task: string) {
+  const res = await fetch(`${RECORDER_API_URL}/recordings/run`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ task, taskId: flowId }),
+  })
+  if (!res.ok) {
+    const body = await res.text().catch(() => "Unknown error")
+    throw new Error(`Recorder ${res.status}: ${body}`)
   }
-
-  if (isProcessing) {
-    return (
-      <div className="flex items-center gap-2 rounded-lg border border-dashed p-6 text-muted-foreground">
-        <LoaderCircleIcon className="size-4 animate-spin" />
-        <span className="text-sm">Video is being generated…</span>
-      </div>
-    )
-  }
-
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-dashed p-6 text-muted-foreground">
-      <VideoIcon className="size-4" />
-      <span className="text-sm">No video generated yet for this flow.</span>
-    </div>
-  )
+  return res.json()
 }
 
 /* ------------------------------------------------------------------ */
 /*  Prompt Section                                                     */
 /* ------------------------------------------------------------------ */
-
-function handleRunGenerateSteps() {
-  toast.info("Generating steps…", {
-    description: "Action steps are being generated from your prompt.",
-  })
-}
 
 function PromptSection({ flow }: Readonly<{ flow: Flow }>) {
   const [isEditing, setIsEditing] = React.useState(false)
@@ -132,8 +110,6 @@ function PromptSection({ flow }: Readonly<{ flow: Flow }>) {
         form.reset()
         setIsEditing(false)
       }}
-      runLabel="Generate Steps"
-      onRun={handleRunGenerateSteps}
       readView={
         <div className="flex flex-col gap-1">
           <p className="text-sm font-medium">{flow.name}</p>
@@ -149,45 +125,58 @@ function PromptSection({ flow }: Readonly<{ flow: Flow }>) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Steps Section                                                      */
+/*  Guide Section                                                      */
 /* ------------------------------------------------------------------ */
 
-function handleRunRecordVideo() {
-  toast.info("Recording video…", {
-    description: "A video is being generated from the action steps.",
-  })
-}
-
-function StepsSection({ flow }: Readonly<{ flow: Flow }>) {
+function GuideSection({ flow }: Readonly<{ flow: Flow }>) {
   const [isEditing, setIsEditing] = React.useState(false)
-  const isProcessing =
-    flow.status === "generating" || flow.status === "recording"
+  const updateFlow = useUpdateFlow()
+  const isProcessing = flow.status === "running" || flow.status === "pending"
 
-  const form = useForm<StepsFormData>({
-    resolver: zodResolver(stepsSchema),
+  const form = useForm<GuideFormData>({
+    resolver: zodResolver(guideSchema),
     defaultValues: {
-      steps_md: flow.steps_md ?? "",
+      guide: flow.guide ?? "",
     },
   })
 
   React.useEffect(() => {
-    form.reset({ steps_md: flow.steps_md ?? "" })
+    form.reset({ guide: flow.guide ?? "" })
     setIsEditing(false)
-  }, [flow.id, flow.steps_md, form])
+  }, [flow.id, flow.guide, form])
 
-  function onSave(data: StepsFormData) {
-    const lineCount = data.steps_md
-      .split("\n")
-      .filter((l) => l.trim().length > 0).length
-    toast.success("Steps updated", {
-      description: `Saved ${lineCount} step(s).`,
-    })
-    setIsEditing(false)
+  async function onSave(data: GuideFormData) {
+    try {
+      await updateFlow.mutateAsync({ id: flow.id, guide: data.guide })
+      toast.success("Guide updated")
+      setIsEditing(false)
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update guide"
+      )
+    }
+  }
+
+  async function handleRecord() {
+    if (!flow.guide) {
+      toast.error("Generate a guide first before recording.")
+      return
+    }
+    try {
+      await postToRecorder(flow.id, flow.guide)
+      toast.success("Recording started", {
+        description: "The recorder is now executing the guide.",
+      })
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to start recording"
+      )
+    }
   }
 
   return (
     <EditableSection
-      title="Action Steps"
+      title="Guide"
       isEditing={isEditing}
       onEdit={() => setIsEditing(true)}
       onSave={form.handleSubmit(onSave)}
@@ -196,7 +185,8 @@ function StepsSection({ flow }: Readonly<{ flow: Flow }>) {
         setIsEditing(false)
       }}
       runLabel="Record Video"
-      onRun={handleRunRecordVideo}
+      onRun={handleRecord}
+      isRunning={isProcessing}
       headerExtra={
         isProcessing ? (
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -206,19 +196,19 @@ function StepsSection({ flow }: Readonly<{ flow: Flow }>) {
         ) : undefined
       }
       readView={
-        flow.steps_md ? (
+        flow.guide ? (
           <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap">
-            {flow.steps_md}
+            {flow.guide}
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            No steps generated yet.
+            No guide generated yet.
           </p>
         )
       }
     >
       <Controller
-        name="steps_md"
+        name="guide"
         control={form.control}
         render={({ field, fieldState }) => (
           <InputGroup>
@@ -242,39 +232,85 @@ function StepsSection({ flow }: Readonly<{ flow: Flow }>) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Video Section                                                      */
+/*  User Docs Section                                                  */
 /* ------------------------------------------------------------------ */
 
-function handleRunRegenerateVideo() {
-  toast.info("Regenerating video…", {
-    description: "The video is being regenerated from the current steps.",
-  })
-}
+function UserDocsSection({ flow }: Readonly<{ flow: Flow }>) {
+  const [isEditing, setIsEditing] = React.useState(false)
+  const updateFlow = useUpdateFlow()
 
-function VideoSection({ flow }: Readonly<{ flow: Flow }>) {
-  const isProcessing =
-    flow.status === "generating" || flow.status === "recording"
+  const form = useForm<{ userDocs: string }>({
+    resolver: zodResolver(
+      z.object({
+        userDocs: z
+          .string()
+          .min(1, "Documentation cannot be empty.")
+          .max(10000, "Documentation must be at most 10000 characters."),
+      })
+    ),
+    defaultValues: { userDocs: flow.userDocs ?? "" },
+  })
+
+  React.useEffect(() => {
+    form.reset({ userDocs: flow.userDocs ?? "" })
+    setIsEditing(false)
+  }, [flow.id, flow.userDocs, form])
+
+  async function onSave(data: { userDocs: string }) {
+    try {
+      await updateFlow.mutateAsync({ id: flow.id, userDocs: data.userDocs })
+      toast.success("Documentation updated")
+      setIsEditing(false)
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to update documentation"
+      )
+    }
+  }
 
   return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">
-          Generated Video
-        </h3>
-        {flow.video_url && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRunRegenerateVideo}
-            disabled={isProcessing}
-          >
-            <RefreshCwIcon className="mr-1.5 size-3.5" />
-            Regenerate
-          </Button>
+    <EditableSection
+      title="User Documentation"
+      isEditing={isEditing}
+      onEdit={() => setIsEditing(true)}
+      onSave={form.handleSubmit(onSave)}
+      onCancel={() => {
+        form.reset()
+        setIsEditing(false)
+      }}
+      readView={
+        flow.userDocs ? (
+          <div className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed whitespace-pre-wrap">
+            {flow.userDocs}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No documentation generated yet.
+          </p>
+        )
+      }
+    >
+      <Controller
+        name="userDocs"
+        control={form.control}
+        render={({ field, fieldState }) => (
+          <InputGroup>
+            <InputGroupTextarea
+              {...field}
+              placeholder="Step-by-step user documentation..."
+              rows={8}
+              className="min-h-32 resize-y text-sm"
+              aria-invalid={fieldState.invalid}
+            />
+            <InputGroupAddon align="block-end">
+              <InputGroupText className="tabular-nums">
+                {field.value.length}/10000 characters
+              </InputGroupText>
+            </InputGroupAddon>
+          </InputGroup>
         )}
-      </div>
-      <FlowVideo videoUrl={flow.video_url} isProcessing={isProcessing} />
-    </section>
+      />
+    </EditableSection>
   )
 }
 
@@ -285,7 +321,6 @@ function VideoSection({ flow }: Readonly<{ flow: Flow }>) {
 export function FlowDetailPanel({ flow }: FlowDetailPanelProps) {
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
-      {/* Header */}
       <div className="flex h-14 items-center justify-between border-b px-4">
         <div className="flex items-center gap-3">
           <h2 className="text-xl leading-none font-semibold">{flow.name}</h2>
@@ -295,13 +330,31 @@ export function FlowDetailPanel({ flow }: FlowDetailPanelProps) {
         </div>
       </div>
 
+      {flow.error && (
+        <div className="border-b border-destructive/50 bg-destructive/5 px-4 py-3">
+          <h3 className="text-sm font-medium text-destructive">Error</h3>
+          <p className="mt-1 text-sm text-destructive/80">{flow.error}</p>
+        </div>
+      )}
+
       <div className="flex flex-col gap-8 p-6">
         <PromptSection flow={flow} />
         <Separator />
-        <StepsSection flow={flow} />
+        <GuideSection flow={flow} />
         <Separator />
-        <VideoSection flow={flow} />
+        <UserDocsSection flow={flow} />
       </div>
+
+      {(flow.status === "pending" || flow.status === "running") && (
+        <div className="flex items-center gap-2 border-t px-6 py-3 text-sm text-muted-foreground">
+          <Spinner className="size-4" />
+          <span>
+            {flow.status === "pending"
+              ? "Exploration in progress..."
+              : "AI is exploring the codebase..."}
+          </span>
+        </div>
+      )}
     </div>
   )
 }

@@ -2,25 +2,8 @@ import { createFileRoute } from "@tanstack/react-router"
 import { FlowsSidebar } from "@/components/flows/flows-sidebar"
 import { useFlow } from "@/hooks/use-flows"
 import { Spinner } from "@/components/ui/spinner"
-import { Badge } from "@/components/ui/badge"
-import { type FlowStatus } from "@/types/flow"
+import { FlowDetailPanel } from "@/components/flows/flow-detail-panel"
 import * as z from "zod"
-
-function getStatusVariant(
-  status: FlowStatus
-): "default" | "secondary" | "outline" | "destructive" {
-  if (status === "completed") return "default"
-  if (status === "failed") return "destructive"
-  if (status === "pending") return "outline"
-  return "secondary"
-}
-
-function getStatusLabel(status: FlowStatus): string {
-  return status
-    .split("_")
-    .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(" ")
-}
 
 export const Route = createFileRoute("/flows/")({
   validateSearch: (search) =>
@@ -82,51 +65,5 @@ function FlowDetail({ flowId }: { flowId: string }) {
     )
   }
 
-  return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex items-center gap-3">
-        <h1 className="text-2xl font-bold">{flow.name}</h1>
-        <Badge variant={getStatusVariant(flow.status)}>
-          {getStatusLabel(flow.status)}
-        </Badge>
-      </div>
-      <p className="text-muted-foreground">{flow.description}</p>
-
-      {flow.error && (
-        <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4">
-          <h3 className="text-sm font-medium text-destructive">Error</h3>
-          <p className="mt-1 text-sm text-destructive/80">{flow.error}</p>
-        </div>
-      )}
-
-      {flow.guide && (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold">Guide</h2>
-          <div className="rounded-lg border p-4">
-            <pre className="text-sm whitespace-pre-wrap">{flow.guide}</pre>
-          </div>
-        </div>
-      )}
-
-      {flow.userDocs && (
-        <div className="flex flex-col gap-2">
-          <h2 className="text-lg font-semibold">User Documentation</h2>
-          <div className="rounded-lg border p-4">
-            <pre className="text-sm whitespace-pre-wrap">{flow.userDocs}</pre>
-          </div>
-        </div>
-      )}
-
-      {(flow.status === "pending" || flow.status === "running") && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Spinner className="size-4" />
-          <span>
-            {flow.status === "pending"
-              ? "Exploration in progress..."
-              : "AI is exploring the codebase..."}
-          </span>
-        </div>
-      )}
-    </div>
-  )
+  return <FlowDetailPanel flow={flow} />
 }

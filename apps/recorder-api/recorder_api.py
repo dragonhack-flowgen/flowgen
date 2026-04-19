@@ -22,6 +22,7 @@ from browser_use.llm.models import get_llm_by_name
 from browser_use.llm.openai.chat import ChatOpenAI
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 
@@ -805,6 +806,14 @@ async def run_recording_job(task: str, task_id: str) -> None:
 
 
 app = FastAPI(title="Flowgen Python Recorder", version="0.1.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/health")

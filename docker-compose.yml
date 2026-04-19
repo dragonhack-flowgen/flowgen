@@ -28,10 +28,10 @@ services:
     ports:
       - "8002:8002"
     volumes:
-      - ./apps/recorder-api/recorder_api.py:/app/recorder_api.py
-      - ./apps/recorder-api/task_records:/app/task_records
-      - ./apps/recorder-api/conversations:/app/conversations
-      - ./apps/recorder-api/step_traces:/app/step_traces
+      - ./apps/recorder-api/recorder_api.py:/app/recorder_api.py:z
+      - ./apps/recorder-api/task_records:/app/task_records:z
+      - ./apps/recorder-api/conversations:/app/conversations:z
+      - ./apps/recorder-api/step_traces:/app/step_traces:z
     depends_on:
       - postgres
 
