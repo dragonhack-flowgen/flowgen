@@ -12,3 +12,7 @@ export async function initDb() {
   await migrate(db, { migrationsFolder: "src/db/migrations" })
   console.log("[db] Migrations applied")
 }
+
+export async function closeDb() {
+  await client.end()
+}
