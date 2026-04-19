@@ -80,7 +80,7 @@ export function CreateFlowModal() {
             variant="variant"
             tooltip="Create New Flow"
             aria-label="Create New Flow"
-            className="group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center"
+            className="group-data-[collapsible=icon]:size-8! justify-center"
           >
             <PlusIcon />
             <span className="group-data-[collapsible=icon]:hidden">

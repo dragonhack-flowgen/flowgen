@@ -53,7 +53,7 @@ export function EditableSection({
             <>
               {onRun && (
                 <Button
-                  variant="outline"
+                  variant="default"
                   size="sm"
                   onClick={onRun}
                   disabled={isRunning}

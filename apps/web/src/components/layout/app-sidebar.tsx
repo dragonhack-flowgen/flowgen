@@ -60,13 +60,10 @@ function SidebarHeaderContent() {
           className="flex min-w-0 items-center gap-3 group-data-[collapsible=icon]:hidden"
         >
           <img
-            src="/flowgenlogo.svg"
+            src="/logo.svg"
             alt="FlowGen logo"
-            className="size-8 shrink-0 rounded-lg"
+            className="h-8 shrink-0 rounded-lg"
           />
-          <span className="truncate text-base font-semibold text-foreground">
-            FlowGen
-          </span>
         </Link>
         <SidebarTrigger className="shrink-0" />
       </div>
