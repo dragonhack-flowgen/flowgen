@@ -1,22 +1,21 @@
 import * as React from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { RECORDER_API_URL } from "@/lib/api"
 
-const RECORDER_API_URL =
-  import.meta.env.VITE_RECORDER_API_URL ?? "http://localhost:8002"
-
-export type RecordingStatus =
+type RecordingStatus =
   | "queued"
   | "running"
   | "completed"
   | "failed"
+  | "cancelled"
 
-export type RecordingArtifacts = {
-  provider: string
-  fileKey: string
-  uploadUrl: string
-} | null
+type RecordingArtifacts = {
+  uploadUrl?: string
+  logsUrl?: string
+  traceUrl?: string
+}
 
-export type RecordingData = {
+type RecordingData = {
   taskId: string
   status: RecordingStatus
   currentStepNumber: number

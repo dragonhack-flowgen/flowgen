@@ -2,10 +2,10 @@ import * as React from "react"
 import { Link, useSearch } from "@tanstack/react-router"
 import { FileTextIcon, AlertCircleIcon, SearchIcon } from "lucide-react"
 import { toast } from "sonner"
-import { useQueryClient } from "@tanstack/react-query"
 
 import { useSidebarResize } from "@/hooks/use-sidebar-resize"
-import { useFlows } from "@/hooks/use-flows"
+import { useFlows, useDiscoverFlows } from "@/hooks/use-flows"
+import { getStatusLabel, getStatusVariant } from "@/lib/flow-status"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -13,24 +13,6 @@ import { SidebarInput } from "@/components/ui/sidebar"
 import { Switch } from "@/components/ui/switch"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
-import { type FlowStatus } from "@/types/flow"
-
-function getStatusLabel(status: FlowStatus): string {
-  return status
-    .split("_")
-    .map((part) => part[0].toUpperCase() + part.slice(1))
-    .join(" ")
-}
-
-function getStatusVariant(
-  status: FlowStatus
-): "default" | "secondary" | "outline" | "destructive" {
-  if (status === "completed") return "default"
-  if (status === "failed") return "destructive"
-  if (status === "pending" || status === "pending_approval") return "outline"
-  if (status === "needs_update") return "destructive"
-  return "secondary"
-}
 
 export function FlowsSidebar() {
   const { flowId } = useSearch({ from: "/flows/" })
@@ -40,31 +22,16 @@ export function FlowsSidebar() {
   const [searchQuery, setSearchQuery] = React.useState("")
 
   const { data: flows, isLoading } = useFlows()
-  const queryClient = useQueryClient()
-  const [isDiscovering, setIsDiscovering] = React.useState(false)
+  const discoverFlows = useDiscoverFlows()
 
   async function handleDiscover() {
-    setIsDiscovering(true)
     try {
-      const apiBaseUrl =
-        import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000"
-      const res = await fetch(`${apiBaseUrl}/flows/discover`, {
-        method: "POST",
-      })
-      if (!res.ok) {
-        const body = await res.text().catch(() => "Unknown error")
-        throw new Error(`API ${res.status}: ${body}`)
-      }
+      await discoverFlows.mutateAsync()
       toast.success("Discovery started", {
         description: "Checking for new and changed flows...",
       })
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["flows"] })
-        setIsDiscovering(false)
-      }, 5000)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Discovery failed")
-      setIsDiscovering(false)
     }
   }
 
@@ -132,9 +99,9 @@ export function FlowsSidebar() {
           size="sm"
           variant="outline"
           onClick={handleDiscover}
-          disabled={isDiscovering}
+          disabled={discoverFlows.isPending}
         >
-          {isDiscovering ? (
+          {discoverFlows.isPending ? (
             <Spinner className="mr-1 size-4" />
           ) : (
             "Discover New"

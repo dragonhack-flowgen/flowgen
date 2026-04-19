@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { GitBranchIcon, GitForkIcon, UnlinkIcon } from "lucide-react"
 import { toast } from "sonner"
 
-import { useDeleteSettings, useSettings, useUpdateSettings } from "@/hooks/use-flows"
+import { useDeleteSettings, useSettings, useUpdateSettings } from "@/hooks/use-settings"
 import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -66,18 +66,15 @@ function SettingsPage() {
   const deleteSettings = useDeleteSettings()
   const [repoUrl, setRepoUrl] = useState("")
 
-  const connection = useMemo(
-    () =>
-      settingsQuery.data?.gitUrl
-        ? parseRepositoryUrl(settingsQuery.data.gitUrl)
-        : null,
-    [settingsQuery.data?.gitUrl]
-  )
+  const gitUrl = settingsQuery.data?.gitUrl ?? null
+  const connection = gitUrl ? parseRepositoryUrl(gitUrl) : null
 
+  // Sync input field when server data loads for the first time
   useEffect(() => {
-    if (!settingsQuery.data?.gitUrl) return
-    setRepoUrl(settingsQuery.data.gitUrl)
-  }, [settingsQuery.data?.gitUrl])
+    if (gitUrl && !repoUrl) {
+      setRepoUrl(gitUrl)
+    }
+  }, [gitUrl])
 
   async function handleConnect() {
     const parsed = parseRepositoryUrl(repoUrl)

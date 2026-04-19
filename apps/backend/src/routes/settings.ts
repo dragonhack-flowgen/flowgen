@@ -1,4 +1,6 @@
 import { Hono } from "hono"
+import { zValidator } from "@hono/zod-validator"
+import { z } from "zod"
 import { eq } from "drizzle-orm"
 import { db } from "../db/index.js"
 import { settings } from "../db/schema.js"
@@ -20,33 +22,26 @@ function isSupportedGitUrl(gitUrl: string): boolean {
   }
 }
 
+const updateSettingsSchema = z.object({
+  gitUrl: z
+    .string()
+    .url("Must be a valid URL")
+    .refine(isSupportedGitUrl, {
+      message:
+        "Git URL must be a public GitHub or GitLab HTTPS repository URL.",
+    }),
+})
+
 export const settingsRoute = new Hono()
   .get("/", async (c) => {
     const [row] = await db.select().from(settings).where(eq(settings.id, 1))
-    return c.json({ gitUrl: row?.gitUrl ?? null, lastExploredCommit: row?.lastExploredCommit ?? null } as const)
+    return c.json({
+      gitUrl: row?.gitUrl ?? null,
+      lastExploredCommit: row?.lastExploredCommit ?? null,
+    })
   })
-  .put("/", async (c) => {
-    let body: { gitUrl?: string; git_url?: string }
-    try {
-      body = await c.req.json()
-    } catch {
-      return c.json({ error: "Invalid JSON body" } as const, 400)
-    }
-    const gitUrl = body.gitUrl ?? body.git_url
-
-    if (!gitUrl) {
-      return c.json({ error: "Git URL is required" } as const, 400)
-    }
-    if (!isSupportedGitUrl(gitUrl)) {
-      return c.json(
-        {
-          error:
-            "Git URL must be a public GitHub or GitLab HTTPS repository URL.",
-        } as const,
-        400
-      )
-    }
-
+  .put("/", zValidator("json", updateSettingsSchema), async (c) => {
+    const { gitUrl } = c.req.valid("json")
     const normalizedGitUrl = normalizeGitUrl(gitUrl)
 
     const [existing] = await db
@@ -63,11 +58,11 @@ export const settingsRoute = new Hono()
       await db.insert(settings).values({ id: 1, gitUrl: normalizedGitUrl })
     }
 
-    return c.json({ gitUrl: normalizedGitUrl } as const)
+    return c.json({ gitUrl: normalizedGitUrl })
   })
   .delete("/", async (c) => {
     await db.delete(settings).where(eq(settings.id, 1))
-    return c.json({ gitUrl: null } as const)
+    return c.json({ gitUrl: null })
   })
 
 export async function getSettings() {

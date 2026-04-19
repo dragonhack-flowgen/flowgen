@@ -1,5 +1,6 @@
-import { desc, eq } from "drizzle-orm"
 import { Hono } from "hono"
+import { createMiddleware } from "hono/factory"
+import { desc, eq } from "drizzle-orm"
 import { UTApi } from "uploadthing/server"
 import { db } from "../db/index.js"
 import { recordings } from "../db/schema.js"
@@ -10,13 +11,13 @@ const uploadthingAcl = process.env.UPLOADTHING_ACL as "public-read" | "private" 
 
 const utapi = uploadthingToken ? new UTApi({ token: uploadthingToken }) : null
 
-function requireInternalSecret(c: import("hono").Context) {
+const requireInternalSecret = createMiddleware(async (c, next) => {
   const secret = c.req.header("x-internal-api-secret")
   if (secret !== internalSecret) {
-    return c.json({ error: "Unauthorized" } as const, 401)
+    return c.json({ error: "Unauthorized" }, 401)
   }
-  return null
-}
+  await next()
+})
 
 export const recordingsRoute = new Hono()
   .get("/", async (c) => {
@@ -29,14 +30,12 @@ export const recordingsRoute = new Hono()
       .select()
       .from(recordings)
       .where(eq(recordings.providerTaskId, id))
-    if (!row) return c.json({ error: "Recording not found" } as const, 404)
+    if (!row) return c.json({ error: "Recording not found" }, 404)
     return c.json(row)
   })
-  .post("/internal/upload", async (c) => {
-    const unauthorized = requireInternalSecret(c)
-    if (unauthorized) return unauthorized
+  .post("/internal/upload", requireInternalSecret, async (c) => {
     if (!utapi) {
-      return c.json({ error: "UPLOADTHING_TOKEN is not configured" } as const, 500)
+      return c.json({ error: "UPLOADTHING_TOKEN is not configured" }, 500)
     }
 
     const formData = await c.req.formData()
@@ -45,10 +44,10 @@ export const recordingsRoute = new Hono()
     const file = formData.get("file")
 
     if (typeof taskId !== "string" || !taskId.trim()) {
-      return c.json({ error: "taskId is required" } as const, 400)
+      return c.json({ error: "taskId is required" }, 400)
     }
     if (!(file instanceof File)) {
-      return c.json({ error: "file is required" } as const, 400)
+      return c.json({ error: "file is required" }, 400)
     }
 
     const result = await utapi.uploadFiles(
@@ -85,7 +84,7 @@ export const recordingsRoute = new Hono()
         })
       }
 
-      return c.json({ error: message } as const, 500)
+      return c.json({ error: message }, 500)
     }
 
     const artifacts = {

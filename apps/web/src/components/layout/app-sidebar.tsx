@@ -8,7 +8,7 @@ import {
   CogIcon,
 } from "lucide-react"
 
-import { useTheme } from "@/components/theme-provider"
+import { useTheme } from "@/providers/theme-provider"
 import { CreateFlowModal } from "@/components/flows/create-flow-modal"
 import {
   Sidebar,

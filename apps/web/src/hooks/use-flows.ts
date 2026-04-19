@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { client } from "@/lib/api"
-import type { Flow } from "@/types/flow"
+import type { InferResponseType } from "hono/client"
+import { client, throwOnError } from "@/lib/api"
+
+type Flow = InferResponseType<typeof client.flows.$get>[number]
+type FlowStatus = Flow["status"]
 
 const flowKeys = {
   all: ["flows"] as const,
@@ -11,29 +14,15 @@ function isFlowInProgress(flow: Pick<Flow, "status"> | undefined | null) {
   return flow?.status === "pending" || flow?.status === "running"
 }
 
-async function handleResponse<T>(res: Response): Promise<T> {
-  if (!res.ok) {
-    let message = `API ${res.status}`
-
-    try {
-      const body = (await res.json()) as { error?: string }
-      message = body.error ? body.error : `${message}: Request failed`
-    } catch {
-      const body = await res.text().catch(() => "Unknown error")
-      message = `${message}: ${body}`
-    }
-
-    throw new Error(message)
-  }
-  return res.json() as Promise<T>
-}
+export type { Flow, FlowStatus }
 
 export function useFlows() {
   return useQuery({
     queryKey: flowKeys.all,
     queryFn: async () => {
       const res = await client.flows.$get()
-      return handleResponse<Flow[]>(res)
+      await throwOnError(res)
+      return res.json()
     },
     refetchInterval: (query) => {
       const flows = query.state.data
@@ -49,11 +38,15 @@ export function useFlow(id: string) {
       const res = await client.flows[":id"].$get({
         param: { id },
       })
-      return handleResponse<Flow>(res)
+      await throwOnError(res)
+      return res.json()
     },
     enabled: !!id,
-    refetchInterval: (query) =>
-      isFlowInProgress(query.state.data) ? 2000 : false,
+    refetchInterval: (query) => {
+      const data = query.state.data
+      if (!data || !("status" in data)) return false
+      return isFlowInProgress(data) ? 2000 : false
+    },
   })
 }
 
@@ -62,7 +55,8 @@ export function useCreateFlow() {
   return useMutation({
     mutationFn: async (data: { name: string; description: string }) => {
       const res = await client.flows.$post({ json: data })
-      return handleResponse<{ id: string; status: string }>(res)
+      await throwOnError(res)
+      return res.json()
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: flowKeys.all })
@@ -85,7 +79,8 @@ export function useUpdateFlow() {
         param: { id },
         json: data,
       })
-      return handleResponse<Flow>(res)
+      await throwOnError(res)
+      return res.json()
     },
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: flowKeys.all })
@@ -96,38 +91,90 @@ export function useUpdateFlow() {
   })
 }
 
-export function useSettings() {
-  return useQuery({
-    queryKey: ["settings"],
-    queryFn: async () => {
-      const res = await client.settings.$get()
-      return handleResponse<{ gitUrl: string | null; lastExploredCommit: string | null }>(res)
-    },
-  })
-}
-
-export function useUpdateSettings() {
+export function useApproveFlow() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (data: { gitUrl: string }) => {
-      const res = await client.settings.$put({ json: data })
-      return handleResponse<{ gitUrl: string }>(res)
+    mutationFn: async (id: string) => {
+      const res = await client.flows[":id"].approve.$post({
+        param: { id },
+      })
+      await throwOnError(res)
+      return res.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] })
+      queryClient.invalidateQueries({ queryKey: flowKeys.all })
     },
   })
 }
 
-export function useDeleteSettings() {
+export function useReExploreFlow() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await client.flows[":id"]["re-explore"].$post({
+        param: { id },
+      })
+      await throwOnError(res)
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: flowKeys.all })
+    },
+  })
+}
+
+export function useDismissFlow() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const res = await client.flows[":id"].dismiss.$post({
+        param: { id },
+      })
+      await throwOnError(res)
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: flowKeys.all })
+    },
+  })
+}
+
+export function useFlagFlow() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      reason,
+    }: {
+      id: string
+      reason?: string
+    }) => {
+      const res = await client.flows[":id"].flag.$post({
+        param: { id },
+        json: { reason },
+      })
+      await throwOnError(res)
+      return res.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: flowKeys.all })
+    },
+  })
+}
+
+export function useDiscoverFlows() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async () => {
-      const res = await client.settings.$delete()
-      return handleResponse<{ gitUrl: null }>(res)
+      const res = await client.flows.discover.$post()
+      await throwOnError(res)
+      return res.json()
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["settings"] })
+      // Delay refetch to give the backend time to start discovery
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: flowKeys.all })
+      }, 5000)
     },
   })
 }

@@ -1,4 +1,6 @@
 import { Hono } from "hono"
+import { zValidator } from "@hono/zod-validator"
+import { z } from "zod"
 import { eq, desc } from "drizzle-orm"
 import { db } from "../db/index.js"
 import { flows } from "../db/schema.js"
@@ -6,25 +8,31 @@ import { runExploration } from "../services/explorer.js"
 import { getSettings } from "./settings.js"
 import { runDiscoveryCycle } from "../services/scheduler.js"
 
-async function parseJsonBody<T>(c: import("hono").Context): Promise<T> {
-  try {
-    return await c.req.json<T>()
-  } catch {
-    throw new Error("Invalid JSON body")
-  }
-}
+const createFlowSchema = z.object({
+  name: z.string().min(1, "name is required"),
+  description: z.string().min(1, "description is required"),
+})
+
+const updateFlowSchema = z
+  .object({
+    guide: z.string().optional(),
+    userDocs: z.string().optional(),
+  })
+  .refine((data) => data.guide || data.userDocs, {
+    message: "guide or userDocs is required",
+  })
+
+const flagFlowSchema = z.object({
+  reason: z.string().optional(),
+})
 
 export const flowsRoute = new Hono()
-  .post("/", async (c) => {
-    const body = await parseJsonBody<{ name?: string; description?: string }>(c)
-
-    if (!body.name || !body.description) {
-      return c.json({ error: "name and description are required" } as const, 400)
-    }
+  .post("/", zValidator("json", createFlowSchema), async (c) => {
+    const body = c.req.valid("json")
 
     const settings = await getSettings()
     if (!settings) {
-      return c.json({ error: "Settings not configured. PUT /settings first." } as const, 400)
+      return c.json({ error: "Settings not configured. PUT /settings first." }, 400)
     }
 
     const flowDescription = body.description
@@ -61,22 +69,18 @@ export const flowsRoute = new Hono()
       }
     })()
 
-    return c.json({ id: row.id, status: row.status } as const, 201)
+    return c.json({ id: row.id, status: row.status }, 201)
   })
   .get("/", async (c) => {
     const all = await db.select().from(flows).orderBy(desc(flows.createdAt))
     return c.json(all)
   })
-  .put("/:id", async (c) => {
+  .put("/:id", zValidator("json", updateFlowSchema), async (c) => {
     const id = c.req.param("id")
-    const body = await parseJsonBody<{ guide?: string; userDocs?: string }>(c)
-
-    if (!body.guide && !body.userDocs) {
-      return c.json({ error: "guide or userDocs is required" } as const, 400)
-    }
+    const body = c.req.valid("json")
 
     const [existing] = await db.select().from(flows).where(eq(flows.id, id))
-    if (!existing) return c.json({ error: "Flow not found" } as const, 404)
+    if (!existing) return c.json({ error: "Flow not found" }, 404)
 
     const [row] = await db
       .update(flows)
@@ -89,33 +93,33 @@ export const flowsRoute = new Hono()
   .get("/:id", async (c) => {
     const id = c.req.param("id")
     const [row] = await db.select().from(flows).where(eq(flows.id, id))
-    if (!row) return c.json({ error: "Flow not found" } as const, 404)
+    if (!row) return c.json({ error: "Flow not found" }, 404)
     return c.json(row)
   })
   .post("/discover", async (c) => {
     const settings = await getSettings()
     if (!settings) {
-      return c.json({ error: "Settings not configured. PUT /settings first." } as const, 400)
+      return c.json({ error: "Settings not configured. PUT /settings first." }, 400)
     }
 
     runDiscoveryCycle().catch((err) => {
       console.error("[discover] Discovery failed:", err)
     })
 
-    return c.json({ status: "discovery_started" } as const, 202)
+    return c.json({ status: "discovery_started" }, 202)
   })
   .post("/:id/approve", async (c) => {
     const id = c.req.param("id")
     const [existing] = await db.select().from(flows).where(eq(flows.id, id))
 
-    if (!existing) return c.json({ error: "Flow not found" } as const, 404)
+    if (!existing) return c.json({ error: "Flow not found" }, 404)
     if (existing.status !== "pending_approval") {
-      return c.json({ error: "Flow is not in pending_approval status" } as const, 400)
+      return c.json({ error: "Flow is not in pending_approval status" }, 400)
     }
 
     const settings = await getSettings()
     if (!settings) {
-      return c.json({ error: "Settings not configured" } as const, 400)
+      return c.json({ error: "Settings not configured" }, 400)
     }
 
     await db
@@ -148,20 +152,20 @@ export const flowsRoute = new Hono()
       }
     })()
 
-    return c.json({ id, status: "pending" } as const, 200)
+    return c.json({ id, status: "pending" }, 200)
   })
   .post("/:id/re-explore", async (c) => {
     const id = c.req.param("id")
     const [existing] = await db.select().from(flows).where(eq(flows.id, id))
 
-    if (!existing) return c.json({ error: "Flow not found" } as const, 404)
+    if (!existing) return c.json({ error: "Flow not found" }, 404)
     if (existing.status !== "needs_update") {
-      return c.json({ error: "Flow is not in needs_update status" } as const, 400)
+      return c.json({ error: "Flow is not in needs_update status" }, 400)
     }
 
     const settings = await getSettings()
     if (!settings) {
-      return c.json({ error: "Settings not configured" } as const, 400)
+      return c.json({ error: "Settings not configured" }, 400)
     }
 
     ;(async () => {
@@ -189,15 +193,15 @@ export const flowsRoute = new Hono()
       }
     })()
 
-    return c.json({ id, status: "running" } as const, 200)
+    return c.json({ id, status: "running" }, 200)
   })
   .post("/:id/dismiss", async (c) => {
     const id = c.req.param("id")
     const [existing] = await db.select().from(flows).where(eq(flows.id, id))
 
-    if (!existing) return c.json({ error: "Flow not found" } as const, 404)
+    if (!existing) return c.json({ error: "Flow not found" }, 404)
     if (existing.status !== "needs_update") {
-      return c.json({ error: "Flow is not in needs_update status" } as const, 400)
+      return c.json({ error: "Flow is not in needs_update status" }, 400)
     }
 
     const [row] = await db
@@ -208,14 +212,14 @@ export const flowsRoute = new Hono()
 
     return c.json(row)
   })
-  .post("/:id/flag", async (c) => {
+  .post("/:id/flag", zValidator("json", flagFlowSchema), async (c) => {
     const id = c.req.param("id")
-    const body = await parseJsonBody<{ reason?: string }>(c)
+    const body = c.req.valid("json")
     const [existing] = await db.select().from(flows).where(eq(flows.id, id))
 
-    if (!existing) return c.json({ error: "Flow not found" } as const, 404)
+    if (!existing) return c.json({ error: "Flow not found" }, 404)
     if (existing.status !== "completed") {
-      return c.json({ error: "Only completed flows can be flagged" } as const, 400)
+      return c.json({ error: "Only completed flows can be flagged" }, 400)
     }
 
     const [row] = await db
