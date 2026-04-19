@@ -50,6 +50,16 @@ function getStatusVariant(
   return "secondary"
 }
 
+function formatFlowCreatedAt(value: string) {
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value))
+}
+
 const promptSchema = z.object({
   name: z
     .string()
@@ -526,8 +536,8 @@ export function FlowDetailPanel({ flow }: FlowDetailPanelProps) {
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto">
-      <div className="flex h-14 items-center justify-between border-b px-4">
-        <div className="flex items-center gap-3">
+      <div className="flex min-h-14 items-center justify-between gap-3 border-b px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-xl leading-none font-semibold">{flow.name}</h2>
           {flow.status === "needs_update" && (
             <AlertCircleIcon className="size-5 text-red-500" />
@@ -535,8 +545,11 @@ export function FlowDetailPanel({ flow }: FlowDetailPanelProps) {
           <Badge variant={getStatusVariant(flow.status)}>
             {getStatusLabel(flow.status)}
           </Badge>
+          <span className="text-sm text-muted-foreground">
+            Created {formatFlowCreatedAt(flow.createdAt)}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           {flow.status === "pending_approval" && (
             <Button size="sm" onClick={handleApprove}>
               <CheckCircleIcon className="mr-1 size-4" />

@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Link, useRouter } from "@tanstack/react-router"
+import { Link, useRouterState } from "@tanstack/react-router"
 import {
   ListIcon,
   MoonIcon,
@@ -32,17 +32,38 @@ const navItems = [
   { label: "Settings", icon: CogIcon, to: "/settings" as const },
 ]
 
+function isNavItemActive(
+  pathname: string,
+  to: (typeof navItems)[number]["to"]
+) {
+  if (to === "/flows") {
+    return pathname === "/flows" || pathname.startsWith("/flows/")
+  }
+
+  if (to === "/help") {
+    return pathname === "/help" || pathname.startsWith("/help/")
+  }
+
+  if (to === "/settings") {
+    return pathname === "/settings" || pathname.startsWith("/settings/")
+  }
+
+  return false
+}
+
 function SidebarHeaderContent() {
   return (
     <SidebarHeader className="gap-0 p-0">
-      <div className="flex h-14 items-center justify-between border-b px-4 pt-1 group-data-[collapsible=icon]:justify-center">
+      <div className="flex items-center justify-between border-b px-4 py-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
         <Link
           to="/flows"
           className="flex min-w-0 items-center gap-3 group-data-[collapsible=icon]:hidden"
         >
-          <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <span className="text-sm font-bold">FG</span>
-          </div>
+          <img
+            src="/flowgenlogo.svg"
+            alt="FlowGen logo"
+            className="size-8 shrink-0 rounded-lg"
+          />
           <span className="truncate text-base font-semibold text-foreground">
             FlowGen
           </span>
@@ -60,7 +81,9 @@ export function AppSidebar({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const { theme, setTheme } = useTheme()
-  const router = useRouter()
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
 
   return (
     <SidebarProvider>
@@ -75,10 +98,7 @@ export function AppSidebar({
                 <SidebarMenuItem key={item.to}>
                   <SidebarMenuButton
                     tooltip={item.label}
-                    isActive={
-                      router.state.location.pathname === item.to ||
-                      router.state.location.pathname.startsWith(item.to)
-                    }
+                    isActive={isNavItemActive(pathname, item.to)}
                     render={<Link to={item.to} />}
                   >
                     <item.icon />
