@@ -24,7 +24,6 @@ import {
   SidebarProvider,
   SidebarRail,
   SidebarTrigger,
-  useSidebar,
 } from "@/components/ui/sidebar"
 
 const navItems = [
@@ -34,34 +33,25 @@ const navItems = [
 ]
 
 function SidebarHeaderContent() {
-  const { state } = useSidebar()
-  const isCollapsed = state === "collapsed"
-
   return (
-    <SidebarHeader>
-      {isCollapsed ? (
-        <>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarTrigger className="mx-auto" />
-            </SidebarMenuItem>
-          </SidebarMenu>
-          <CreateFlowModal />
-        </>
-      ) : (
-        <>
-          <div className="flex items-center justify-between">
-            <Link to="/flows" className="flex items-center gap-2 px-2 py-1">
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <span className="text-sm font-bold">FG</span>
-              </div>
-              <span className="truncate text-sm font-semibold">FlowGen</span>
-            </Link>
-            <SidebarTrigger />
+    <SidebarHeader className="gap-0 p-0">
+      <div className="flex h-14 items-center justify-between border-b px-4 pt-1 group-data-[collapsible=icon]:justify-center">
+        <Link
+          to="/flows"
+          className="flex min-w-0 items-center gap-3 group-data-[collapsible=icon]:hidden"
+        >
+          <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <span className="text-sm font-bold">FG</span>
           </div>
-          <CreateFlowModal />
-        </>
-      )}
+          <span className="truncate text-base font-semibold text-foreground">
+            FlowGen
+          </span>
+        </Link>
+        <SidebarTrigger className="shrink-0" />
+      </div>
+      <div className="flex items-center border-b p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
+        <CreateFlowModal />
+      </div>
     </SidebarHeader>
   )
 }
@@ -78,8 +68,8 @@ export function AppSidebar({
         <SidebarHeaderContent />
 
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          <SidebarGroup className="px-4 py-2 group-data-[collapsible=icon]:px-2">
+            <SidebarGroupLabel className="px-0">Platform</SidebarGroupLabel>
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.to}>
@@ -100,7 +90,7 @@ export function AppSidebar({
           </SidebarGroup>
         </SidebarContent>
 
-        <SidebarFooter>
+        <SidebarFooter className="px-4 py-2 group-data-[collapsible=icon]:px-2">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton

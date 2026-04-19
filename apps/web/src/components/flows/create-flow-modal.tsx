@@ -66,9 +66,16 @@ export function CreateFlowModal() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
-          <SidebarMenuButton variant="variant">
+          <SidebarMenuButton
+            variant="variant"
+            tooltip="Create New Flow"
+            aria-label="Create New Flow"
+            className="group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:justify-center"
+          >
             <PlusIcon />
-            Create New Flow
+            <span className="group-data-[collapsible=icon]:hidden">
+              Create New Flow
+            </span>
           </SidebarMenuButton>
         }
       />

@@ -73,7 +73,7 @@ export function FlowsSidebar() {
       data-dragging={isDraggingRail}
       className="relative flex h-full w-(--flows-sidebar-width) shrink-0 flex-col border-r bg-sidebar transition-[width] duration-200 ease-linear data-[dragging=true]:duration-0"
     >
-      <div className="flex h-14 items-center justify-between border-b px-4">
+      <div className="flex h-14 items-center justify-between border-b px-4 pt-1">
         <h2 className="text-base font-medium text-foreground">Your Flows</h2>
         <Label className="flex items-center gap-2 text-sm">
           <span>In progress</span>
