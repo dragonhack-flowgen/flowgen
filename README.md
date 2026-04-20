@@ -1,6 +1,6 @@
 <div align="center">
 
-# <img src="apps/web/public/flowgenlogo.svg" width="36" height="36" alt="FlowGen logo" /> FlowGen
+# <img src="apps/web/public/logo-icon.svg" width="36" height="36" alt="FlowGen logo" /> FlowGen
 
 ### Automated user documentation videos grounded in your codebase
 
