@@ -23,9 +23,11 @@ FlowGen explores your codebase, generates step-by-step user guides, and records 
 3. **Records videos** — Spins up a headless browser to execute the guide and record a real walkthrough video
 4. **Stays in sync** — Detects code changes and flags outdated documentation for re-generation
 
+<!--
 Generated guide:
-https://github.com/user-attachments/assets/5be4e665-658c-46ad-857e-7de10249e519
 
+https://github.com/user-attachments/assets/5be4e665-658c-46ad-857e-7de10249e519
+-->
 
 <br />
 
